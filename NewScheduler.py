@@ -24,7 +24,7 @@ class Person:
 
     def can_perform_task(self, task: Task, day: str):
         if day in self.preferences and task.name in self.preferences[day]:
-            return False
+            return True
         if self.current_weight + task.weight > self.max_weight:
             return False
         return True
@@ -87,7 +87,8 @@ class Scheduler:
             assigned_tasks = []
 
             for task in day.tasks:
-                candidates = [p for p in self.people if p.can_perform_task(task, day.name)]
+                people = sorted(self.people, key=lambda p: p.current_weight)
+                candidates = [p for p in people if p.can_perform_task(task, day.name)]
 
                 # If no suitable candidates, pick the one with the lowest current weight
                 if not candidates:
@@ -137,16 +138,19 @@ dev = Task("Dev", 0.0)
 # Define people with max_weight
 alice = Person("Alice", max_weight=12, preferences={"Monday": ["POD"]})
 bob = Person("Bob", max_weight=18, preferences={"Tuesday": ["Dev"], 'Wednesday': ["POD"]})
-david = Person("Bob", max_weight=12, preferences={"Tuesday": ["SAD"], 'Wednesday': ["POD"]})
-brian = Person("Bob", max_weight=12, preferences={"Monday": ["Dev"], 'Friday': ["POD"]})
+david = Person("David", max_weight=12, preferences={"Tuesday": ["SAD"], 'Wednesday': ["POD"]})
+brian = Person("Brian", max_weight=12, preferences={"Monday": ["Dev"], 'Friday': ["POD"]})
 charlie = Person("Charlie", max_weight=18)
+dance = Person("Dance", max_weight=18)
+adria = Person("Adria", max_weight=18)
+jun = Person("Jun", max_weight=12)
 
 # Define days with specific tasks
 monday = Day("Monday", [pod, pod, pod_backup, sad, sad_assist, sad_assist])
-tuesday = Day("Tuesday", [pod, pod, pod_backup, sad_assist, hdr_amp])
-wednesday = Day("Wednesday", [pod, pod, pod_backup, sad_assist, hbo, sad])
-thursday = Day("Thursday", [pod, pod, pod_backup, sad_assist, sad])
-friday = Day("Friday", [pod, pod, pod_backup, sad_assist, sad, hbo])
+tuesday = Day("Tuesday", [pod, pod, pod_backup, sad_assist, hdr_amp, sad, sad])
+wednesday = Day("Wednesday", [pod, pod, pod_backup, sad_assist, hbo, sad, sad])
+thursday = Day("Thursday", [pod, pod, pod_backup, sad_assist, sad, sad])
+friday = Day("Friday", [pod, pod, pod_backup, sad_assist, sad, hbo, sad])
 
 # Initialize scheduler
 scheduler = Scheduler()
@@ -157,6 +161,9 @@ scheduler.add_person(bob)
 scheduler.add_person(charlie)
 scheduler.add_person(david)
 scheduler.add_person(brian)
+scheduler.add_person(dance)
+scheduler.add_person(adria)
+scheduler.add_person(jun)
 
 scheduler.add_day(monday)
 scheduler.add_day(tuesday)
