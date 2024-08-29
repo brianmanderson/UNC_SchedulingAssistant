@@ -38,14 +38,14 @@ class Person:
 
 
 class Day:
-    Tasks: List[Task]
+    tasks: List[Task]
 
     def __init__(self, name: str, tasks: list):
         self.name = name
-        self.Tasks = tasks
+        self.tasks = tasks
 
     def __repr__(self):
-        return f"Day(name={self.name}, tasks={self.Tasks})"
+        return f"Day(name={self.name}, tasks={self.tasks})"
 
 
 class Scheduler:
@@ -63,14 +63,30 @@ class Scheduler:
         person.assign_task(task, day.name)
         return (person, task)
 
+    def fulfill_requests(self):
+        """Attempt to fulfill the requests of each person before general scheduling."""
+        for person in self.people:
+            for day_name, preferred_tasks in person.preferences.items():
+                day = next((d for d in self.days if d.name == day_name), None)
+                if day:
+                    for task_name in preferred_tasks:
+                        task = next((t for t in day.tasks if t.name == task_name), None)
+                        if task and person.can_perform_task(task, day.name):
+                            self.assign_task(person, task, day)
+                            day.tasks.remove(task)
+
     def create_schedule(self):
         schedule = {}
 
+        # First pass: Fulfill individual requests
+        self.fulfill_requests()
+
+        # Second pass: Schedule remaining tasks
         for day in self.days:
             daily_schedule = []
             assigned_tasks = []
 
-            for task in day.Tasks:
+            for task in day.tasks:
                 candidates = [p for p in self.people if p.can_perform_task(task, day.name)]
 
                 # If no suitable candidates, pick the one with the lowest current weight
@@ -81,19 +97,21 @@ class Scheduler:
                 daily_schedule.append(self.assign_task(selected_person, task, day))
                 assigned_tasks.append(task.name)
 
+                # Handle required tasks
                 for required_task_name in task.requires:
-                    for t in day.Tasks:
-                        if t.name == required_task_name:
-                            daily_schedule.append(self.assign_task(selected_person, t, day))
-                            assigned_tasks.append(required_task_name)
-                            day.Tasks.remove(t)
+                    required_task = next((t for t in day.tasks if t.name == required_task_name), None)
+                    if required_task:
+                        daily_schedule.append(self.assign_task(selected_person, required_task, day))
+                        assigned_tasks.append(required_task_name)
+                        day.tasks.remove(required_task)
 
+                # Handle compatible tasks
                 for compatible_task_name in task.compatible_with:
-                    for t in day.Tasks:
-                        if t.name == compatible_task_name:
-                            daily_schedule.append(self.assign_task(selected_person, t, day))
-                            assigned_tasks.append(compatible_task_name)
-                            day.Tasks.remove(t)
+                    compatible_task = next((t for t in day.tasks if t.name == compatible_task_name), None)
+                    if compatible_task:
+                        daily_schedule.append(self.assign_task(selected_person, compatible_task, day))
+                        assigned_tasks.append(compatible_task_name)
+                        day.tasks.remove(compatible_task)
 
             schedule[day.name] = daily_schedule
 
@@ -104,6 +122,7 @@ class Scheduler:
                         daily_schedule.append(self.assign_task(person, Task("Dev", 0.0), day))
 
         return schedule
+
 
 
 # Define tasks
@@ -117,15 +136,17 @@ dev = Task("Dev", 0.0)
 
 # Define people with max_weight
 alice = Person("Alice", max_weight=12, preferences={"Monday": ["POD"]})
-bob = Person("Bob", max_weight=18, preferences={"Tuesday": ["SAD", "Dev"]})
+bob = Person("Bob", max_weight=18, preferences={"Tuesday": ["Dev"], 'Wednesday': ["POD"]})
+david = Person("Bob", max_weight=12, preferences={"Tuesday": ["SAD"], 'Wednesday': ["POD"]})
+brian = Person("Bob", max_weight=12, preferences={"Monday": ["Dev"], 'Friday': ["POD"]})
 charlie = Person("Charlie", max_weight=18)
 
 # Define days with specific tasks
-monday = Day("Monday", [pod, pod_backup, sad, sad_assist, sad_assist])
-tuesday = Day("Tuesday", [pod, pod_backup, sad_assist, hdr_amp])
-wednesday = Day("Wednesday", [pod, pod_backup, sad_assist, hbo, sad])
-thursday = Day("Thursday", [pod, pod_backup, sad_assist, sad])
-friday = Day("Friday", [pod, pod_backup, sad_assist, sad, hbo])
+monday = Day("Monday", [pod, pod, pod_backup, sad, sad_assist, sad_assist])
+tuesday = Day("Tuesday", [pod, pod, pod_backup, sad_assist, hdr_amp])
+wednesday = Day("Wednesday", [pod, pod, pod_backup, sad_assist, hbo, sad])
+thursday = Day("Thursday", [pod, pod, pod_backup, sad_assist, sad])
+friday = Day("Friday", [pod, pod, pod_backup, sad_assist, sad, hbo])
 
 # Initialize scheduler
 scheduler = Scheduler()
@@ -134,6 +155,8 @@ scheduler = Scheduler()
 scheduler.add_person(alice)
 scheduler.add_person(bob)
 scheduler.add_person(charlie)
+scheduler.add_person(david)
+scheduler.add_person(brian)
 
 scheduler.add_day(monday)
 scheduler.add_day(tuesday)
