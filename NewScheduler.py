@@ -44,10 +44,14 @@ class Person:
         day_schedule = [t for d, t in self.schedule if d == day]
         for scheduled_task in day_schedule:
             # Location check
-            if scheduled_task.location is not None and task.location is not None and scheduled_task.location != task.location:
+            if (scheduled_task.location is not None and task.location is not None
+                    and scheduled_task.location != task.location):
                 return False
             # Compatibility check
             if task.name not in scheduled_task.compatible_with and scheduled_task.name not in task.compatible_with:
+                return False
+            # Redundant task check
+            if task.name == scheduled_task.name:
                 return False
         return True
 
@@ -132,14 +136,6 @@ class Scheduler:
                         assigned_tasks.append(required_task_name)
                         day.tasks.remove(required_task)
 
-                # Handle compatible tasks
-                for compatible_task_name in task.compatible_with:
-                    compatible_task = next((t for t in day.tasks if t.name == compatible_task_name), None)
-                    if compatible_task:
-                        daily_schedule.append(self.assign_task(selected_person, compatible_task, day))
-                        assigned_tasks.append(compatible_task_name)
-                        day.tasks.remove(compatible_task)
-
             schedule[day.name] = daily_schedule
 
             # Assign Dev tasks to those with remaining weight capacity
@@ -153,13 +149,13 @@ class Scheduler:
 
 def main():
     # Define tasks
-    pod = Task("POD", 4.5)
-    sad = Task("SAD", 3.0)
-    sad_assist = Task("SAD_Assist", 2.0)
-    hbo = Task("HBO", 2.0, compatible_with=["SAD_Assist", "SAD"])
-    pod_backup = Task("POD_Backup", 2.0, requires=["SAD_Assist"])
-    hdr_amp = Task("HDR_AMP", 1.0, compatible_with=["POD", "POD_Backup"])
-    dev = Task("Dev", 0.0)
+    pod = Task("POD", 4.5, location='UNC')
+    sad = Task("SAD", 3.0, location=None)
+    sad_assist = Task("SAD_Assist", 2.0, location=None)
+    hbo = Task("HBO", 2.0, compatible_with=["SAD_Assist", "SAD"], location='HBO')
+    pod_backup = Task("POD_Backup", 2.0, requires=["SAD_Assist"], location='UNC')
+    hdr_amp = Task("HDR_AMP", 1.0, compatible_with=["POD", "POD_Backup"], location='UNC')
+    dev = Task("Dev", 0.0, location=None)
 
     # Define people with max_weight
     alice = Person("Alice", max_weight=12, preferences={"Monday": ["POD"]})
