@@ -36,10 +36,19 @@ class Person:
         self.current_weight = 0.0
 
     def can_perform_task(self, task: Task, day: str) -> bool:
-        if day in self.preferences and task.name in self.preferences[day]:
-            return True
+        # Check if the person has exceeded their weight limit
         if self.current_weight + task.weight > self.max_weight:
             return False
+
+        # Check location compatibility with tasks already scheduled on the same day
+        day_schedule = [t for d, t in self.schedule if d == day]
+        for scheduled_task in day_schedule:
+            # Location check
+            if scheduled_task.location is not None and task.location is not None and scheduled_task.location != task.location:
+                return False
+            # Compatibility check
+            if task.name not in scheduled_task.compatible_with and scheduled_task.name not in task.compatible_with:
+                return False
         return True
 
     def assign_task(self, task: Task, day: str):
@@ -147,7 +156,7 @@ def main():
     pod = Task("POD", 4.5)
     sad = Task("SAD", 3.0)
     sad_assist = Task("SAD_Assist", 2.0)
-    hbo = Task("HBO", 2.0, compatible_with=["SAD_Assist"])
+    hbo = Task("HBO", 2.0, compatible_with=["SAD_Assist", "SAD"])
     pod_backup = Task("POD_Backup", 2.0, requires=["SAD_Assist"])
     hdr_amp = Task("HDR_AMP", 1.0, compatible_with=["POD", "POD_Backup"])
     dev = Task("Dev", 0.0)
