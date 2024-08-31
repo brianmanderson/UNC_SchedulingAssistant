@@ -1,3 +1,4 @@
+import random
 from typing import List, Optional, Dict, Tuple
 import os
 
@@ -72,6 +73,7 @@ class Day:
 
     def __init__(self, name: str, tasks: List[Task]):
         self.name = name
+        tasks = sorted(tasks, key=lambda p: p.weight, reverse=True)
         self.tasks = tasks
 
     def __repr__(self):
@@ -115,17 +117,18 @@ class Scheduler:
         self.fulfill_requests()
 
         # Second pass: Schedule remaining tasks
+        # Do a random shuffle, otherwise it'll heavy schedule on Monday first
+        random.Random(314).shuffle(self.days)
         for day in self.days:
             daily_schedule = []
             assigned_tasks = []
-
             for task in day.tasks:
-                people = sorted(self.people, key=lambda p: -(p.max_weight - p.current_weight))
+                people = sorted(self.people, key=lambda p: p.max_weight - p.current_weight, reverse=True)
                 candidates = [p for p in people if p.can_perform_task(task, day.name)]
 
                 # If no suitable candidates, pick the one with the lowest current weight
                 if not candidates:
-                    candidates = sorted(self.people, key=lambda p: -(p.max_weight - p.current_weight))
+                    candidates = sorted(self.people, key=lambda p: p.max_weight - p.current_weight, reverse=True)
 
                 selected_person = candidates[0]
                 daily_schedule.append(self.assign_task(selected_person, task, day))
@@ -179,11 +182,11 @@ def main():
     jun = Person("Jun", max_weight=12)
 
     # Define days with specific tasks
-    monday = Day("Monday", [pod, pod, pod_backup, sad, sad_assist, sad_assist])
-    tuesday = Day("Tuesday", [pod, pod, pod_backup, sad_assist, hdr_amp, sad, sad])
-    wednesday = Day("Wednesday", [pod, pod, pod_backup, sad_assist, hbo, sad, sad])
-    thursday = Day("Thursday", [pod, pod, pod_backup, sad_assist, sad, sad])
-    friday = Day("Friday", [pod, pod, pod_backup, sad_assist, sad, hbo, sad])
+    monday = Day("Monday", [pod, sad, pod, pod_backup, sad_assist, sad_assist])
+    tuesday = Day("Tuesday", [pod, sad, pod, pod_backup, sad_assist, hdr_amp, sad])
+    wednesday = Day("Wednesday", [pod, sad, pod, pod_backup, sad_assist, hbo, sad])
+    thursday = Day("Thursday", [pod, sad, pod, pod_backup, sad_assist, sad, sad])
+    friday = Day("Friday", [pod, sad, pod, pod_backup, sad_assist, hbo, sad])
 
     # Initialize scheduler
     scheduler = Scheduler()
