@@ -25,21 +25,24 @@ class Person:
     name: str
     max_weight: float
     preferences: Dict[str, List[str]]
+    avoid_preferences: Dict[str, List[str]]
     schedule: List[Tuple[str, Task]]
     current_weight: float
 
-    def __init__(self, name: str, max_weight: float, preferences: Optional[Dict[str, List[str]]] = None):
+    def __init__(self, name: str, max_weight: float, preferences: Optional[Dict[str, List[str]]] = None,
+                 avoid_preferences: Optional[Dict[str, List[str]]] = None):
         self.name = name
         self.max_weight = max_weight
         self.preferences = preferences if preferences else {}
+        self.avoid_preferences = avoid_preferences if avoid_preferences else {}
         self.schedule = []
         self.current_weight = 0.0
 
     def can_perform_task(self, task: Task, day: str) -> bool:
         # Check if the person has exceeded their weight limit
-        if self.current_weight + task.weight > self.max_weight:
-            return False
-
+        if day in self.avoid_preferences:
+            if task.name in self.avoid_preferences[day] or (task.location and task.location in self.avoid_preferences[day]):
+                return False
         # Check location compatibility with tasks already scheduled on the same day
         day_schedule = [t for d, t in self.schedule if d == day]
         for scheduled_task in day_schedule:
@@ -117,12 +120,12 @@ class Scheduler:
             assigned_tasks = []
 
             for task in day.tasks:
-                people = sorted(self.people, key=lambda p: p.current_weight)
+                people = sorted(self.people, key=lambda p: -(p.max_weight - p.current_weight))
                 candidates = [p for p in people if p.can_perform_task(task, day.name)]
 
                 # If no suitable candidates, pick the one with the lowest current weight
                 if not candidates:
-                    candidates = sorted(self.people, key=lambda p: p.current_weight)
+                    candidates = sorted(self.people, key=lambda p: -(p.max_weight - p.current_weight))
 
                 selected_person = candidates[0]
                 daily_schedule.append(self.assign_task(selected_person, task, day))
@@ -140,9 +143,15 @@ class Scheduler:
 
             # Assign Dev tasks to those with remaining weight capacity
             for person in self.people:
-                if person.current_weight < person.max_weight:
-                    if day.name not in [d for d, _ in person.schedule]:
-                        daily_schedule.append(self.assign_task(person, Task("Dev", 0.0), day))
+                if day.name not in [d for d, _ in person.schedule]:
+                    daily_schedule.append(self.assign_task(person, Task("Dev", 0.0), day))
+                else:
+                    weight = 0
+                    for d, task in person.schedule:
+                        if d == day.name:
+                            weight += task.weight
+                    if weight <= 2.5:
+                        daily_schedule.append(self.assign_task(person, Task("HalfDev", 0.0), day))
 
         return schedule
 
@@ -160,7 +169,9 @@ def main():
     # Define people with max_weight
     alice = Person("Alice", max_weight=12, preferences={"Monday": ["POD"]})
     bob = Person("Bob", max_weight=18, preferences={"Tuesday": ["Dev"], 'Wednesday': ["POD"]})
-    david = Person("David", max_weight=12, preferences={"Tuesday": ["SAD"], 'Wednesday': ["POD"]})
+    david = Person("David", max_weight=12, preferences={"Tuesday": ["SAD"], 'Wednesday': ["POD"]},
+                   avoid_preferences={"Monday": ["HBO"], "Tuesday": ["HBO"], "Wednesday": ["HBO"],
+                                      "Thursday": ["HBO"], "Friday": ["HBO"]})
     brian = Person("Brian", max_weight=12, preferences={"Monday": ["Dev"], 'Friday': ["POD"]})
     charlie = Person("Charlie", max_weight=18)
     dance = Person("Dance", max_weight=18)
@@ -197,7 +208,9 @@ def main():
     schedule = scheduler.create_schedule()
 
     for day, assignments in schedule.items():
-        print(f"{day}: {assignments}")
+        print(day)
+        for person, task in assignments:
+            print(f"{person.name}: {task.name}")
 
 
 if __name__ == '__main__':
