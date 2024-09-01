@@ -40,6 +40,8 @@ class Person:
         self.current_weight = 0.0
 
     def can_perform_task(self, task: Task, day: str) -> bool:
+        if self.name == "Leith":
+            x = 1
         # Check if the person has exceeded their weight limit
         if day in self.avoid_preferences:
             if task.name in self.avoid_preferences[day] or (task.location and task.location in self.avoid_preferences[day]):
@@ -113,7 +115,6 @@ class Scheduler:
                         task = next((t for t in day.tasks if t.name == task_name), None)
                         if task and person.can_perform_task(task, day.name):
                             daily_schedule.append(self.assign_task(person, task, day))
-                            self.assign_task(person, task, day)
                             day.tasks.remove(task)
 
     def create_schedule(self) -> Dict[str, List[Tuple[Person, Task]]]:
@@ -158,7 +159,7 @@ class Scheduler:
                     for d, task in person.schedule:
                         if d == day.name:
                             weight += task.weight
-                    if weight <= 2.5:
+                    if weight <= 3.0:
                         daily_schedule.append(self.assign_task(person, Task("HalfDev", 0.0), day))
 
         return self.schedule
@@ -166,46 +167,54 @@ class Scheduler:
 
 def main():
     # Define tasks
+    vacation = Task("Vacation", weight=0.0, location="Vacation")
     pod = Task("POD", 4.5, location='UNC', requires=["HDR_AMP", "IORTTx"])
     sad = Task("SAD", 3.0, location=None)
     sad_assist = Task("SAD_Assist", 2.0, location=None)
+    prostate_brachy = Task("Prostate_Brachy", 3.0, location='UNC', compatible_with=['SAD', 'SAD_Assist'])
     hbo = Task("HBO", 2.0, compatible_with=["SAD_Assist", "SAD"], location='HBO')
     pod_backup = Task("POD_Backup", 2.0, requires=["SAD_Assist", "HDR_AMP", "IORTTx"], location='UNC')
     hdr_amp = Task("HDR_AMP", 1.0, compatible_with=["POD", "POD_Backup"], location='UNC')
     iort_tx = Task("IORTTx", 2.0, compatible_with=["POD", "POD_Backup"], location='UNC')
-    dev = Task("Dev", 0.0, location=None)
+    dev = Task("Dev", 0.0, location="Away")
 
     # Define people with max_weight
-    alice = Person("Alice", max_weight=12, preferences={"Monday": ["POD"]})
-    bob = Person("Bob", max_weight=18, preferences={"Tuesday": ["Dev"], 'Wednesday': ["POD"]})
-    david = Person("David", max_weight=12, preferences={"Tuesday": ["SAD"], 'Wednesday': ["POD"]},
-                   avoid_preferences={"Monday": ["HBO"], "Tuesday": ["HBO"], "Wednesday": ["HBO"],
-                                      "Thursday": ["HBO"], "Friday": ["HBO"]})
-    brian = Person("Brian", max_weight=12, preferences={"Monday": ["Dev"], 'Friday': ["POD"]})
-    charlie = Person("Charlie", max_weight=18)
-    dance = Person("Dance", max_weight=18)
+    people = []
+    leith = Person("Leith", max_weight=12, preferences={"Monday": ["Prostate_Brachy"]})
+    people.append(leith)
+    taki = Person("Taki", max_weight=12, preferences={"Tuesday": ["Dev"], 'Wednesday': ["POD"]})
+    people.append(taki)
+    dance = Person("Dance", max_weight=16)
+    people.append(dance)
     adria = Person("Adria", max_weight=18)
+    people.append(adria)
+    cielle = Person("Cielle", max_weight=18, preferences={"Monday": ["Prostate_Brachy"]})
+    people.append(cielle)
+    brian = Person("Brian", max_weight=12, preferences={"Monday": ["POD"], 'Friday': ["Dev"]})
+    brian.schedule.append(("Thursday", vacation))
+    people.append(brian)
+    david = Person("David", max_weight=12,
+                   avoid_preferences={"Monday": ["HBO"], "Tuesday": ["HBO"], "Wednesday": ["HBO"],
+                                      "Thursday": ["HBO", "UNC"], "Friday": ["HBO"]})
+    people.append(david)
     jun = Person("Jun", max_weight=12)
-
+    jun.schedule.append(("Friday", vacation))
+    jun.schedule.append(("Thursday", vacation))
+    people.append(jun)
     # Define days with specific tasks
-    monday = Day("Monday", [pod, sad, pod, pod_backup, sad_assist, sad_assist])
-    tuesday = Day("Tuesday", [pod, iort_tx, iort_tx, sad, pod, pod_backup, sad_assist, hdr_amp, sad])
-    wednesday = Day("Wednesday", [pod, sad, pod, pod_backup, sad_assist, hbo, sad])
-    thursday = Day("Thursday", [pod, sad, pod, pod_backup, sad_assist, sad, sad])
-    friday = Day("Friday", [pod, sad, pod, pod_backup, sad_assist, hbo, sad])
+    every_day_tasks = [pod, pod, hbo, pod_backup, sad_assist, sad]
+    monday = Day("Monday", every_day_tasks + [prostate_brachy, prostate_brachy, sad_assist])
+    tuesday = Day("Tuesday", every_day_tasks + [sad, sad, hdr_amp, hdr_amp])
+    wednesday = Day("Wednesday", every_day_tasks + [sad, sad, hdr_amp])
+    thursday = Day("Thursday", every_day_tasks + [hdr_amp, sad])
+    friday = Day("Friday", every_day_tasks + [sad, sad, hdr_amp])
 
     # Initialize scheduler
     scheduler = Scheduler()
 
     # Add people and days to scheduler
-    scheduler.add_person(alice)
-    scheduler.add_person(bob)
-    scheduler.add_person(charlie)
-    scheduler.add_person(david)
-    scheduler.add_person(brian)
-    scheduler.add_person(dance)
-    scheduler.add_person(adria)
-    scheduler.add_person(jun)
+    for p in people:
+        scheduler.add_person(p)
 
     scheduler.add_day(monday)
     scheduler.add_day(tuesday)
@@ -217,7 +226,7 @@ def main():
     schedule = scheduler.create_schedule()
     for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']:
         assignments = schedule[day]
-        print(day)
+        print(f"---------{day}----------")
         for person, task in assignments:
             print(f"{person.name}: {task.name}")
 
