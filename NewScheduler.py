@@ -82,11 +82,13 @@ class Day:
 
 class Scheduler:
     people: List[Person]
+    schedule: Dict[str, List[Tuple[Person, Task]]]
     days: List[Day]
 
     def __init__(self):
         self.people = []
         self.days = []
+        self.schedule = {}
 
     def add_person(self, person: Person):
         self.people.append(person)
@@ -104,14 +106,17 @@ class Scheduler:
             for day_name, preferred_tasks in person.preferences.items():
                 day = next((d for d in self.days if d.name == day_name), None)
                 if day:
+                    if day.name not in self.schedule:
+                        self.schedule[day.name] = []
+                    daily_schedule = self.schedule[day.name]
                     for task_name in preferred_tasks:
                         task = next((t for t in day.tasks if t.name == task_name), None)
                         if task and person.can_perform_task(task, day.name):
+                            daily_schedule.append(self.assign_task(person, task, day))
                             self.assign_task(person, task, day)
                             day.tasks.remove(task)
 
     def create_schedule(self) -> Dict[str, List[Tuple[Person, Task]]]:
-        schedule = {}
 
         # First pass: Fulfill individual requests
         self.fulfill_requests()
@@ -120,7 +125,9 @@ class Scheduler:
         # Do a random shuffle, otherwise it'll heavy schedule on Monday first
         random.Random(314).shuffle(self.days)
         for day in self.days:
-            daily_schedule = []
+            if day.name not in self.schedule:
+                self.schedule[day.name] = []
+            daily_schedule = self.schedule[day.name]
             assigned_tasks = []
             for task in day.tasks:
                 people = sorted(self.people, key=lambda p: p.max_weight - p.current_weight, reverse=True)
@@ -142,8 +149,6 @@ class Scheduler:
                         assigned_tasks.append(required_task_name)
                         day.tasks.remove(required_task)
 
-            schedule[day.name] = daily_schedule
-
             # Assign Dev tasks to those with remaining weight capacity
             for person in self.people:
                 if day.name not in [d for d, _ in person.schedule]:
@@ -156,17 +161,18 @@ class Scheduler:
                     if weight <= 2.5:
                         daily_schedule.append(self.assign_task(person, Task("HalfDev", 0.0), day))
 
-        return schedule
+        return self.schedule
 
 
 def main():
     # Define tasks
-    pod = Task("POD", 4.5, location='UNC')
+    pod = Task("POD", 4.5, location='UNC', requires=["HDR_AMP", "IORTTx"])
     sad = Task("SAD", 3.0, location=None)
     sad_assist = Task("SAD_Assist", 2.0, location=None)
     hbo = Task("HBO", 2.0, compatible_with=["SAD_Assist", "SAD"], location='HBO')
-    pod_backup = Task("POD_Backup", 2.0, requires=["SAD_Assist"], location='UNC')
+    pod_backup = Task("POD_Backup", 2.0, requires=["SAD_Assist", "HDR_AMP", "IORTTx"], location='UNC')
     hdr_amp = Task("HDR_AMP", 1.0, compatible_with=["POD", "POD_Backup"], location='UNC')
+    iort_tx = Task("IORTTx", 2.0, compatible_with=["POD", "POD_Backup"], location='UNC')
     dev = Task("Dev", 0.0, location=None)
 
     # Define people with max_weight
@@ -183,7 +189,7 @@ def main():
 
     # Define days with specific tasks
     monday = Day("Monday", [pod, sad, pod, pod_backup, sad_assist, sad_assist])
-    tuesday = Day("Tuesday", [pod, sad, pod, pod_backup, sad_assist, hdr_amp, sad])
+    tuesday = Day("Tuesday", [pod, iort_tx, iort_tx, sad, pod, pod_backup, sad_assist, hdr_amp, sad])
     wednesday = Day("Wednesday", [pod, sad, pod, pod_backup, sad_assist, hbo, sad])
     thursday = Day("Thursday", [pod, sad, pod, pod_backup, sad_assist, sad, sad])
     friday = Day("Friday", [pod, sad, pod, pod_backup, sad_assist, hbo, sad])
@@ -209,8 +215,8 @@ def main():
 
     # Create and print the schedule
     schedule = scheduler.create_schedule()
-
-    for day, assignments in schedule.items():
+    for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']:
+        assignments = schedule[day]
         print(day)
         for person, task in assignments:
             print(f"{person.name}: {task.name}")
