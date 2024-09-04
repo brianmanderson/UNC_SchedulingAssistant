@@ -88,7 +88,7 @@ class Person:
         self.current_weight = 0.0
 
     def can_perform_task(self, task: Task, day: str) -> bool:
-        if task.name == "HBO" and day == "Monday_8/26/2024" and self.name == 'Cielle':
+        if task.name == "HalfDev" and day == "Monday_8/26/2024" and self.name == 'Adria':
             x = 1
         # Check if this is in their avoidance preferences
         if day in self.avoid_preferences:
@@ -211,9 +211,8 @@ class Scheduler:
                 self.schedule[day.to_string()] = []
             daily_schedule = self.schedule[day.to_string()]
             assigned_tasks = []
-            for task in day.tasks:
-                if task.name == "HBO":
-                    x = 1
+            while day.tasks:
+                task = day.tasks.pop(0)
                 people = sorted(self.people, key=lambda p: p.max_weight - p.current_weight, reverse=True)
                 candidates = [p for p in people if p.can_perform_task(task, day.to_string())]
 
@@ -224,7 +223,6 @@ class Scheduler:
                 selected_person = candidates[0]
                 daily_schedule.append(self.assign_task(selected_person, task, day))
                 assigned_tasks.append(task.name)
-                day.tasks.remove(task)
 
                 # Handle required tasks
                 for required_task_name in task.requires:
@@ -243,7 +241,7 @@ class Scheduler:
                     for d, task in person.schedule:
                         if d == day.to_string():
                             weight += task.weight
-                    if weight <= 3.0:
+                    if weight <= 3.0 and person.can_perform_task(Task("HalfDev", 0.0), day.to_string()):
                         daily_schedule.append(self.assign_task(person, Task("HalfDev", 0.0), day))
         # Sort the schedule based on day.date.to_days()
         sorted_schedule = dict(
@@ -261,6 +259,7 @@ def main():
     pod = Task("POD", 4.5, location='UNC', requires=["HDR_AMP", "IORTTx"])
     sad = Task("SAD", 3.0, location=None)
     sad_assist = Task("SAD_Assist", 2.0, location=None)
+    gamma_tile = Task("Gamma_Tile", 3.0, location="UNC")
     prostate_brachy = Task("Prostate_Brachy", 3.0, location='UNC', compatible_with=['SAD', 'SAD_Assist'])
     hbo = Task("HBO", 2.0, compatible_with=["SAD_Assist", "SAD"], location='HBO')
     pod_backup = Task("POD_Backup", 2.0, requires=["SAD_Assist", "HDR_AMP", "IORTTx", "Prostate_Brachy"], location='UNC')
@@ -274,14 +273,15 @@ def main():
     people.append(leith)
     taki = Person("Taki", max_weight=12, preferences={"Monday_8/26/2024": ["Dev"], 'Tuesday_8/27/2024': ["Dev"]})
     people.append(taki)
-    dance = Person("Dance", max_weight=16)
+    dance = Person("Dance", max_weight=16, preferences={"Thursday_8/29/2024": ["Gamma_Tile"],
+                                                        "Friday_8/30/2024": ["Gamma_Tile"]})
     people.append(dance)
     adria = Person("Adria", max_weight=18, preferences={"Monday_8/26/2024": ["Vacation"]})
     people.append(adria)
     cielle = Person("Cielle", max_weight=18, preferences={"Monday_8/26/2024": ["Prostate_Brachy"]})
     people.append(cielle)
-    brian = Person("Brian", max_weight=12, preferences={"Monday_8/26/2024": ["POD"],
-                                                        'Friday_8/30/2024': ["Dev"]})
+    brian = Person("Brian", max_weight=12, preferences={"Monday_8/26/2024": ["POD_Backup"],
+                                                        'Friday_8/30/2024': ["SAD"]})
     people.append(brian)
     david = Person("David", max_weight=12,
                    avoid_preferences={"Monday_8/26/2024": ["HBO", "UNC"], "Tuesday_8/27/2024": ["HBO", "UNC"],
@@ -293,20 +293,22 @@ def main():
     people.append(jun)
     # Define days with specific tasks
     every_day_tasks = [pod, pod, hbo, pod_backup, sad_assist, sad]
-    monday = Day("Monday", every_day_tasks + [prostate_brachy, prostate_brachy, sad_assist],
+    monday = Day("Monday", every_day_tasks + [prostate_brachy, prostate_brachy, sad_assist, sad_assist],
                  DateTimeClass(year=2024, month=8, day=26))
-    tuesday = Day("Tuesday", every_day_tasks + [sad, sad, hdr_amp, hdr_amp, hdr_amp],
+    tuesday = Day("Tuesday", every_day_tasks + [hdr_amp, hdr_amp, hdr_amp, hdr_amp, sad_assist],
                   DateTimeClass(year=2024, month=8, day=27))
-    wednesday = Day("Wednesday", every_day_tasks + [sad, sad],
+    wednesday = Day("Wednesday", every_day_tasks + [sad],
                     DateTimeClass(year=2024, month=8, day=28))
-    thursday = Day("Thursday", every_day_tasks + [hdr_amp, sad, hdr_amp, hdr_amp],
+    thursday = Day("Thursday", every_day_tasks + [hdr_amp, hdr_amp, hdr_amp, sad, gamma_tile],
                    DateTimeClass(year=2024, month=8, day=29))
-    friday = Day("Friday", every_day_tasks + [sad, sad, iort_tx, iort_tx, hdr_amp, hdr_amp],
+    friday = Day("Friday", every_day_tasks + [iort_tx, hdr_amp, sad_assist, iort_tx, hdr_amp, gamma_tile],
                  DateTimeClass(year=2024, month=8, day=30))
 
     # Define weeks (same as before)
     week1 = Week("8/26/2024", [monday, tuesday, wednesday, thursday, friday])
 
+    monday = Day("Monday", every_day_tasks + [sad, sad, hdr_amp, hdr_amp, hdr_amp],
+                 DateTimeClass(year=2024, month=9, day=2))
     tuesday = Day("Tuesday", every_day_tasks + [sad, sad, hdr_amp, hdr_amp, hdr_amp],
                   DateTimeClass(year=2024, month=9, day=3))
     wednesday = Day("Wednesday", every_day_tasks + [sad, sad],
@@ -315,7 +317,7 @@ def main():
                    DateTimeClass(year=2024, month=9, day=5))
     friday = Day("Friday", every_day_tasks + [sad, sad, iort_tx, iort_tx, hdr_amp, hdr_amp],
                  DateTimeClass(year=2024, month=9, day=6))
-    week2 = Week("Week 2", [monday, tuesday, wednesday, thursday, friday])
+    week2 = Week("9/2/204", [monday, tuesday, wednesday, thursday, friday])
 
     # Initialize scheduler
     scheduler = Scheduler()
@@ -326,8 +328,14 @@ def main():
 
     for day in week1.days:
         scheduler.add_day(day)
-    for day in week2.days:
-        scheduler.add_day(day)
+    schedule = scheduler.create_schedule()
+    for day, assignments in schedule.items():
+
+        print(f"---------{day}----------")
+        for person, task in assignments:
+            print(f"{person.name}: {task.name}")
+    # for day in week2.days:
+    #     scheduler.add_day(day)
 
     # Create and print the schedule
     schedule = scheduler.create_schedule()
