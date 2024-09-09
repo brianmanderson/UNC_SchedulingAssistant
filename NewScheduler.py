@@ -193,23 +193,25 @@ class Scheduler:
 
     def fulfill_requests(self):
         """Attempt to fulfill the requests of each person before general scheduling."""
-        for person in self.people:
-            for preference in person.preferences:
-                # Find the corresponding day in the scheduler
-                day = next((d for d in self.days if d.to_string() == preference.day), None)
-                if day:
-                    if day.to_string() not in self.schedule:
-                        self.schedule[day.to_string()] = []
-                    daily_schedule = self.schedule[day.to_string()]
+        people_preferences = [(person, preference) for person in self.people for preference in person.preferences]
+        # Sort the list based on preference.weight
+        people_preferences.sort(key=lambda x: x[1].weight, reverse=True)
+        for person, preference in people_preferences:
+            # Find the corresponding day in the scheduler
+            day = next((d for d in self.days if d.to_string() == preference.day), None)
+            if day:
+                if day.to_string() not in self.schedule:
+                    self.schedule[day.to_string()] = []
+                daily_schedule = self.schedule[day.to_string()]
 
-                    # Find the task or location in the day's tasks
-                    task = next((t for t in day.tasks if
-                                 t.name == preference.task_or_location or t.location == preference.task_or_location),
-                                None)
+                # Find the task or location in the day's tasks
+                task = next((t for t in day.tasks if
+                             t.name == preference.task_or_location or t.location == preference.task_or_location),
+                            None)
 
-                    if task and person.can_perform_task(task, day.to_string()):
-                        daily_schedule.append(self.assign_task(person, task, day))
-                        day.tasks.remove(task)
+                if task and person.can_perform_task(task, day.to_string()):
+                    daily_schedule.append(self.assign_task(person, task, day))
+                    day.tasks.remove(task)
 
     def create_schedule(self) -> Dict[str, List[Tuple[Person, Task]]]:
 
@@ -287,7 +289,7 @@ def main():
     leith = Person(
         "Leith",
         max_weight=12,
-        preferences=[Preference("Monday_8/26/2024", "POD", weight=1.0)]
+        preferences=[Preference("Monday_8/26/2024", "POD", weight=7.0)]
     )
     people.append(leith)
 
@@ -296,8 +298,8 @@ def main():
         "Taki",
         max_weight=12,
         preferences=[
-            Preference("Monday_8/26/2024", "Dev", weight=1.0),
-            Preference("Tuesday_8/27/2024", "Dev", weight=1.0)
+            Preference("Monday_8/26/2024", "Dev", weight=7.0),
+            Preference("Tuesday_8/27/2024", "Dev", weight=7.0)
         ]
     )
     people.append(taki)
@@ -307,8 +309,8 @@ def main():
         "Dance",
         max_weight=16,
         preferences=[
-            Preference("Thursday_8/29/2024", "Gamma_Tile", weight=1.0),
-            Preference("Friday_8/30/2024", "Gamma_Tile", weight=1.0)
+            Preference("Thursday_8/29/2024", "Gamma_Tile", weight=9.0),
+            Preference("Friday_8/30/2024", "Gamma_Tile", weight=9.0)
         ]
     )
     people.append(dance)
@@ -317,7 +319,7 @@ def main():
     adria = Person(
         "Adria",
         max_weight=18,
-        preferences=[Preference("Monday_8/26/2024", "Vacation", weight=1.0)]
+        preferences=[Preference("Monday_8/26/2024", "Vacation", weight=9.0)]
     )
     people.append(adria)
 
@@ -325,7 +327,7 @@ def main():
     cielle = Person(
         "Cielle",
         max_weight=18,
-        preferences=[Preference("Monday_8/26/2024", "Prostate_Brachy", weight=1.0)]
+        preferences=[Preference("Monday_8/26/2024", "Prostate_Brachy", weight=9.0)]
     )
     people.append(cielle)
 
@@ -334,8 +336,8 @@ def main():
         "Brian",
         max_weight=12,
         preferences=[
-            Preference("Monday_8/26/2024", "POD_Backup", weight=1.0),
-            Preference("Friday_8/30/2024", "SAD", weight=1.0)
+            Preference("Monday_8/26/2024", "POD_Backup", weight=3.0),
+            Preference("Friday_8/30/2024", "SAD", weight=7.0)
         ]
     )
     people.append(brian)
@@ -345,10 +347,10 @@ def main():
         "David",
         max_weight=12,
         avoid_preferences=[
-            Preference("Monday_8/26/2024", "HBO", weight=1.0),
-            Preference("Monday_8/26/2024", "UNC", weight=1.0),
-            Preference("Tuesday_8/27/2024", "HBO", weight=1.0),
-            Preference("Tuesday_8/27/2024", "UNC", weight=1.0),
+            Preference("Monday_8/26/2024", "HBO", weight=9.0),
+            Preference("Monday_8/26/2024", "UNC", weight=9.0),
+            Preference("Tuesday_8/27/2024", "HBO", weight=9.0),
+            Preference("Tuesday_8/27/2024", "UNC", weight=9.0),
             Preference("Wednesday_8/28/2024", "HBO", weight=1.0),
             Preference("Thursday_8/29/2024", "HBO", weight=1.0),
             Preference("Friday_8/30/2024", "HBO", weight=1.0),
@@ -362,8 +364,8 @@ def main():
         "Jun",
         max_weight=12,
         preferences=[
-            Preference("Monday_8/26/2024", "Prostate_Brachy", weight=1.0),
-            Preference("Friday_8/30/2024", "Vacation", weight=1.0)
+            Preference("Monday_8/26/2024", "Prostate_Brachy", weight=9.0),
+            Preference("Friday_8/30/2024", "Vacation", weight=9.0)
         ]
     )
     people.append(jun)
