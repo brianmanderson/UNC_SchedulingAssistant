@@ -70,30 +70,40 @@ class Task:
                 f"compatible_with={self.compatible_with}, requires={self.requires}, location={self.location})")
 
 
+class Preference:
+    day: str
+    task_or_location: str
+    weight: float
+
+    def __init__(self, day: str, task_or_location: str, weight: float):
+        self.day = day
+        self.task_or_location = task_or_location
+        self.weight = weight
+
+
 class Person:
     name: str
     max_weight: float
-    preferences: Dict[str, List[str]]
-    avoid_preferences: Dict[str, List[str]]
+    preferences: List[Preference]
+    avoid_preferences: List[Preference]
     schedule: List[Tuple[str, Task]]
     current_weight: float
 
-    def __init__(self, name: str, max_weight: float, preferences: Optional[Dict[str, List[str]]] = None,
-                 avoid_preferences: Optional[Dict[str, List[str]]] = None):
+    def __init__(self, name: str, max_weight: float, preferences: Optional[List[Preference]] = None,
+                 avoid_preferences: Optional[List[Preference]] = None):
         self.name = name
         self.max_weight = max_weight
-        self.preferences = preferences if preferences else {}
-        self.avoid_preferences = avoid_preferences if avoid_preferences else {}
+        self.preferences = preferences if preferences else []
+        self.avoid_preferences = avoid_preferences if avoid_preferences else []
         self.schedule = []
         self.current_weight = 0.0
 
     def can_perform_task(self, task: Task, day: str) -> bool:
-        if task.name == "HalfDev" and day == "Monday_8/26/2024" and self.name == 'Adria':
-            x = 1
         # Check if this is in their avoidance preferences
-        if day in self.avoid_preferences:
-            if task.name in self.avoid_preferences[day] or (task.location and task.location in self.avoid_preferences[day]):
+        for avoid_pref in self.avoid_preferences:
+            if avoid_pref.day == day and (task.name == avoid_pref.task_or_location or task.location == avoid_pref.task_or_location):
                 return False
+
         # Check location compatibility with tasks already scheduled on the same day
         day_schedule = [t for d, t in self.schedule if d == day]
         for scheduled_task in day_schedule:
@@ -110,8 +120,6 @@ class Person:
         return True
 
     def assign_task(self, task: Task, day: str):
-        if self.name == 'Cielle' and task.name == 'HBO' and day == 'Monday_8/26/2024':
-            x = 1
         self.schedule.append((day, task))
         self.current_weight += task.weight
 
@@ -186,17 +194,22 @@ class Scheduler:
     def fulfill_requests(self):
         """Attempt to fulfill the requests of each person before general scheduling."""
         for person in self.people:
-            for day_name, preferred_tasks in person.preferences.items():
-                day = next((d for d in self.days if d.to_string() == day_name), None)
+            for preference in person.preferences:
+                # Find the corresponding day in the scheduler
+                day = next((d for d in self.days if d.to_string() == preference.day), None)
                 if day:
                     if day.to_string() not in self.schedule:
                         self.schedule[day.to_string()] = []
                     daily_schedule = self.schedule[day.to_string()]
-                    for task_name in preferred_tasks:
-                        task = next((t for t in day.tasks if t.name == task_name), None)
-                        if task and person.can_perform_task(task, day.to_string()):
-                            daily_schedule.append(self.assign_task(person, task, day))
-                            day.tasks.remove(task)
+
+                    # Find the task or location in the day's tasks
+                    task = next((t for t in day.tasks if
+                                 t.name == preference.task_or_location or t.location == preference.task_or_location),
+                                None)
+
+                    if task and person.can_perform_task(task, day.to_string()):
+                        daily_schedule.append(self.assign_task(person, task, day))
+                        day.tasks.remove(task)
 
     def create_schedule(self) -> Dict[str, List[Tuple[Person, Task]]]:
 
@@ -269,28 +282,92 @@ def main():
 
     # Define people with max_weight
     people = []
-    leith = Person("Leith", max_weight=12, preferences={"Monday_8/26/2024": ["POD"]})
+
+    # Leith's preferences
+    leith = Person(
+        "Leith",
+        max_weight=12,
+        preferences=[Preference("Monday_8/26/2024", "POD", weight=1.0)]
+    )
     people.append(leith)
-    taki = Person("Taki", max_weight=12, preferences={"Monday_8/26/2024": ["Dev"], 'Tuesday_8/27/2024': ["Dev"]})
+
+    # Taki's preferences
+    taki = Person(
+        "Taki",
+        max_weight=12,
+        preferences=[
+            Preference("Monday_8/26/2024", "Dev", weight=1.0),
+            Preference("Tuesday_8/27/2024", "Dev", weight=1.0)
+        ]
+    )
     people.append(taki)
-    dance = Person("Dance", max_weight=16, preferences={"Thursday_8/29/2024": ["Gamma_Tile"],
-                                                        "Friday_8/30/2024": ["Gamma_Tile"]})
+
+    # Dance's preferences
+    dance = Person(
+        "Dance",
+        max_weight=16,
+        preferences=[
+            Preference("Thursday_8/29/2024", "Gamma_Tile", weight=1.0),
+            Preference("Friday_8/30/2024", "Gamma_Tile", weight=1.0)
+        ]
+    )
     people.append(dance)
-    adria = Person("Adria", max_weight=18, preferences={"Monday_8/26/2024": ["Vacation"]})
+
+    # Adria's preferences
+    adria = Person(
+        "Adria",
+        max_weight=18,
+        preferences=[Preference("Monday_8/26/2024", "Vacation", weight=1.0)]
+    )
     people.append(adria)
-    cielle = Person("Cielle", max_weight=18, preferences={"Monday_8/26/2024": ["Prostate_Brachy"]})
+
+    # Cielle's preferences
+    cielle = Person(
+        "Cielle",
+        max_weight=18,
+        preferences=[Preference("Monday_8/26/2024", "Prostate_Brachy", weight=1.0)]
+    )
     people.append(cielle)
-    brian = Person("Brian", max_weight=12, preferences={"Monday_8/26/2024": ["POD_Backup"],
-                                                        'Friday_8/30/2024': ["SAD"]})
+
+    # Brian's preferences
+    brian = Person(
+        "Brian",
+        max_weight=12,
+        preferences=[
+            Preference("Monday_8/26/2024", "POD_Backup", weight=1.0),
+            Preference("Friday_8/30/2024", "SAD", weight=1.0)
+        ]
+    )
     people.append(brian)
-    david = Person("David", max_weight=12,
-                   avoid_preferences={"Monday_8/26/2024": ["HBO", "UNC"], "Tuesday_8/27/2024": ["HBO", "UNC"],
-                                      "Wednesday_8/28/2024": ["HBO"], "Thursday_8/29/2024": ["HBO"],
-                                      "Friday_8/30/2024": ["HBO", "UNC"]})
+
+    # David's avoid preferences
+    david = Person(
+        "David",
+        max_weight=12,
+        avoid_preferences=[
+            Preference("Monday_8/26/2024", "HBO", weight=1.0),
+            Preference("Monday_8/26/2024", "UNC", weight=1.0),
+            Preference("Tuesday_8/27/2024", "HBO", weight=1.0),
+            Preference("Tuesday_8/27/2024", "UNC", weight=1.0),
+            Preference("Wednesday_8/28/2024", "HBO", weight=1.0),
+            Preference("Thursday_8/29/2024", "HBO", weight=1.0),
+            Preference("Friday_8/30/2024", "HBO", weight=1.0),
+            Preference("Friday_8/30/2024", "UNC", weight=1.0)
+        ]
+    )
     people.append(david)
-    jun = Person("Jun", max_weight=12, preferences={"Monday_8/26/2024": ["Prostate_Brachy"],
-                                                    "Friday_8/30/2024": ["Vacation"]})
+
+    # Jun's preferences
+    jun = Person(
+        "Jun",
+        max_weight=12,
+        preferences=[
+            Preference("Monday_8/26/2024", "Prostate_Brachy", weight=1.0),
+            Preference("Friday_8/30/2024", "Vacation", weight=1.0)
+        ]
+    )
     people.append(jun)
+
     # Define days with specific tasks
     every_day_tasks = [pod, pod, hbo, pod_backup, sad_assist, sad]
     monday = Day("Monday", every_day_tasks + [prostate_brachy, prostate_brachy, sad_assist, sad_assist],
