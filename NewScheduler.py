@@ -370,6 +370,15 @@ def main():
     )
     people.append(jun)
 
+    ross = Person(
+        "Ross",
+        max_weight=18,
+        preferences=[
+            Preference("Friday_8/30/2024", "Vacation", weight=9.0)
+        ]
+    )
+    people.append(ross)
+
     # Define days with specific tasks
     every_day_tasks = [pod, pod, hbo, pod_backup, sad_assist, sad]
     monday = Day("Monday", every_day_tasks + [prostate_brachy, prostate_brachy, sad_assist, sad_assist],
