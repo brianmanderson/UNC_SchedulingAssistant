@@ -148,6 +148,19 @@ class Person:
         return f"Person(name={self.name}, max_weight={self.max_weight}, current_weight={self.current_weight})"
 
 
+class Physicist(Person):
+    def __init__(self, name: str, weight_per_day: float, preferences: Optional[List[Preference]] = None,
+                 avoid_preferences: Optional[List[Preference]] = None, performable_tasks: Optional[List[str]] = None):
+        # Define the performable tasks for a Physicist
+        if performable_tasks is None:
+            performable_tasks = []
+        performable_tasks += [
+            'POD', 'POD_Backup', 'SAD', 'SAD_Assist', 'HBO',
+            'HDR_AMP', 'IORTTx'
+        ]
+        super().__init__(name, weight_per_day, preferences, avoid_preferences, performable_tasks)
+
+
 class Day:
     name: str
     date: DateTimeClass
@@ -378,20 +391,21 @@ def main():
     dev = Task("Dev", 0.0, location="Away")
 
     # Define people with max_weight
+    # Define people with max_weight
     people = []
 
-    # Leith's preferences
-    leith = Person(
+    # Leith is a Physicist
+    leith = Physicist(
         "Leith",
-        weight_per_day=12/5,
+        weight_per_day=12 / 5,
         preferences=[Preference("Monday_8/26/2024", "POD", weight=7.0)]
     )
     people.append(leith)
 
-    # Taki's preferences
-    taki = Person(
+    # Taki is a Physicist
+    taki = Physicist(
         "Taki",
-        weight_per_day=12/5,
+        weight_per_day=12 / 5,
         preferences=[
             Preference("Monday_8/26/2024", "Dev", weight=7.0),
             Preference("Tuesday_8/27/2024", "Dev", weight=7.0)
@@ -399,37 +413,39 @@ def main():
     )
     people.append(taki)
 
-    # Dance's preferences
-    dance = Person(
+    # Dance can perform 'Gamma_Tile', 'Dev', 'HalfDev', and 'Vacation'
+    dance = Physicist(
         "Dance",
-        weight_per_day=18/5,
+        weight_per_day=18 / 5,
         preferences=[
             Preference("Thursday_8/29/2024", "Gamma_Tile", weight=9.0),
             Preference("Friday_8/30/2024", "Gamma_Tile", weight=9.0)
-        ]
+        ],
+        performable_tasks=['Gamma_Tile']
     )
     people.append(dance)
 
-    # Adria's preferences
-    adria = Person(
+    # Adria is a Physicist
+    adria = Physicist(
         "Adria",
-        weight_per_day=18/5,
+        weight_per_day=18 / 5,
         preferences=[Preference("Monday_8/26/2024", "Vacation", weight=9.0)]
     )
     people.append(adria)
 
-    # Cielle's preferences
-    cielle = Person(
+    # Cielle can perform 'Prostate_Brachy', 'Dev', 'HalfDev', and 'Vacation'
+    cielle = Physicist(
         "Cielle",
-        weight_per_day=18/5,
-        preferences=[Preference("Monday_8/26/2024", "Prostate_Brachy", weight=9.0)]
+        weight_per_day=18 / 5,
+        preferences=[Preference("Monday_8/26/2024", "Prostate_Brachy", weight=9.0)],
+        performable_tasks=['Prostate_Brachy']
     )
     people.append(cielle)
 
-    # Brian's preferences
-    brian = Person(
+    # Brian is a Physicist
+    brian = Physicist(
         "Brian",
-        weight_per_day=12/5,
+        weight_per_day=12 / 5,
         preferences=[
             Preference("Monday_8/26/2024", "POD_Backup", weight=3.0),
             Preference("Friday_8/30/2024", "SAD", weight=7.0)
@@ -437,10 +453,10 @@ def main():
     )
     people.append(brian)
 
-    # David's avoid preferences
-    david = Person(
+    # David is a Physicist with avoid preferences
+    david = Physicist(
         "David",
-        weight_per_day=12/5,
+        weight_per_day=12 / 5,
         avoid_preferences=[
             Preference("Monday_8/26/2024", "HBO", weight=9.0),
             Preference("Monday_8/26/2024", "UNC", weight=9.0),
@@ -454,20 +470,22 @@ def main():
     )
     people.append(david)
 
-    # Jun's preferences
-    jun = Person(
+    # Jun can perform 'Prostate_Brachy', 'Dev', 'HalfDev', and 'Vacation'
+    jun = Physicist(
         "Jun",
-        weight_per_day=12/5,
+        weight_per_day=12 / 5,
         preferences=[
             Preference("Monday_8/26/2024", "Prostate_Brachy", weight=9.0),
             Preference("Friday_8/30/2024", "Vacation", weight=9.0)
-        ]
+        ],
+        performable_tasks=['Prostate_Brachy']
     )
     people.append(jun)
 
-    ross = Person(
+    # Ross is a Physicist
+    ross = Physicist(
         "Ross",
-        weight_per_day=18/5,
+        weight_per_day=18 / 5,
         preferences=[
             Preference("Friday_8/30/2024", "Vacation", weight=9.0)
         ]
