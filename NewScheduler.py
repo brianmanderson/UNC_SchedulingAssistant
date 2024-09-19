@@ -58,13 +58,16 @@ class Task:
     location: Optional[str]
     compatible_with: List[str]
     requires: List[str]
+    people_can_perform: List[str]
 
-    def __init__(self, name: str, weight: float, compatible_with: Optional[List[str]] = None, requires: Optional[List[str]] = None, location: Optional[str] = None):
+    def __init__(self, name: str, weight: float, compatible_with: Optional[List[str]] = None,
+                 requires: Optional[List[str]] = None, location: Optional[str] = None):
         self.name = name
         self.weight = weight
         self.compatible_with = compatible_with if compatible_with else []
         self.requires = requires if requires else []
         self.location = location
+        self.people_can_perform = []
 
     def __repr__(self):
         return (f"Task(name={self.name}, weight={self.weight}, "
@@ -90,9 +93,10 @@ class Person:
     avoid_preferences: List[Preference]
     schedule: List[Tuple[str, Task]]
     current_weight: float
+    performable_tasks: List[str]
 
     def __init__(self, name: str, weight_per_day: float, preferences: Optional[List[Preference]] = None,
-                 avoid_preferences: Optional[List[Preference]] = None):
+                 avoid_preferences: Optional[List[Preference]] = None, performable_tasks: Optional[List[str]] = None):
         self.name = name
         self.weight_per_day = weight_per_day
         self.preferences = preferences if preferences else []
@@ -100,6 +104,12 @@ class Person:
         self.schedule = []
         self.current_weight = 0.0
         self.max_weight = 0.0
+        # Set default performable tasks
+        if performable_tasks is None:
+            self.performable_tasks = []
+        for t in ['Dev', 'HalfDev', 'Vacation']:
+            if t not in self.performable_tasks:
+                self.performable_tasks.append(t)
 
     def add_day(self):
         self.max_weight += self.weight_per_day
@@ -107,8 +117,13 @@ class Person:
     def can_perform_task(self, task: Task, day: str) -> bool:
         # Check if this is in their avoidance preferences
         for avoid_pref in self.avoid_preferences:
-            if avoid_pref.day == day and (task.name == avoid_pref.task_or_location or task.location == avoid_pref.task_or_location):
+            if avoid_pref.day == day and (task.name == avoid_pref.task_or_location or
+                                          task.location == avoid_pref.task_or_location):
                 return False
+
+        # Check if the person can perform the task
+        if task.name not in self.performable_tasks:
+            return False
 
         # Check location compatibility with tasks already scheduled on the same day
         day_schedule = [t for d, t in self.schedule if d == day]
@@ -163,8 +178,8 @@ class Week:
         return f"Week(name={self.name}, days={self.days})"
 
 
-def sort_schedule_by_person_name(schedule: Dict[str, List[Tuple[Person, Task]]]) -> Dict[
-    str, List[Tuple[Person, Task]]]:
+def sort_schedule_by_person_name(schedule: Dict[str, List[Tuple[Person, Task]]]) \
+        -> Dict[str, List[Tuple[Person, Task]]]:
     # Iterate over each key in the dictionary
     for key in schedule:
         # Sort the list of (Person, Task) tuples by Person.name
@@ -460,8 +475,8 @@ def main():
     people.append(ross)
 
     # Define days with specific tasks
-    every_day_tasks = [pod, pod, hbo, pod_backup, sad_assist, sad]
-    monday = Day("Monday", every_day_tasks + [prostate_brachy, prostate_brachy, sad_assist, sad_assist],
+    every_day_tasks = [pod, pod, hbo, pod_backup, sad]
+    monday = Day("Monday", every_day_tasks + [prostate_brachy, prostate_brachy],
                  DateTimeClass(year=2024, month=8, day=26))
     tuesday = Day("Tuesday", every_day_tasks + [hdr_amp, hdr_amp, hdr_amp, hdr_amp, sad_assist],
                   DateTimeClass(year=2024, month=8, day=27))
