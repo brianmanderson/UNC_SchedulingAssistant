@@ -496,27 +496,27 @@ def main():
     every_day_tasks = [pod, pod, hbo, pod_backup, sad]
     monday = Day("Monday", every_day_tasks + [prostate_brachy, prostate_brachy],
                  DateTimeClass(year=2024, month=8, day=26))
-    tuesday = Day("Tuesday", every_day_tasks + [hdr_amp, hdr_amp, hdr_amp, hdr_amp, sad_assist],
+    tuesday = Day("Tuesday", every_day_tasks + [hdr_amp, hdr_amp, hdr_amp, hdr_amp],
                   DateTimeClass(year=2024, month=8, day=27))
-    wednesday = Day("Wednesday", every_day_tasks + [sad],
+    wednesday = Day("Wednesday", every_day_tasks,
                     DateTimeClass(year=2024, month=8, day=28))
-    thursday = Day("Thursday", every_day_tasks + [hdr_amp, hdr_amp, hdr_amp, sad, gamma_tile],
+    thursday = Day("Thursday", every_day_tasks + [hdr_amp, hdr_amp, hdr_amp, gamma_tile],
                    DateTimeClass(year=2024, month=8, day=29))
-    friday = Day("Friday", every_day_tasks + [iort_tx, hdr_amp, sad_assist, iort_tx, hdr_amp, gamma_tile],
+    friday = Day("Friday", every_day_tasks + [iort_tx, hdr_amp, iort_tx, hdr_amp, gamma_tile],
                  DateTimeClass(year=2024, month=8, day=30))
 
     # Define weeks (same as before)
     week1 = Week("8/26/2024", [monday, tuesday, wednesday, thursday, friday])
 
-    monday = Day("Monday", every_day_tasks + [sad, sad, hdr_amp, hdr_amp, hdr_amp],
+    monday = Day("Monday", every_day_tasks + [hdr_amp, hdr_amp, hdr_amp],
                  DateTimeClass(year=2024, month=9, day=2))
-    tuesday = Day("Tuesday", every_day_tasks + [sad, sad, hdr_amp, hdr_amp, hdr_amp],
+    tuesday = Day("Tuesday", every_day_tasks + [hdr_amp, hdr_amp, hdr_amp],
                   DateTimeClass(year=2024, month=9, day=3))
-    wednesday = Day("Wednesday", every_day_tasks + [sad, sad],
+    wednesday = Day("Wednesday", every_day_tasks,
                     DateTimeClass(year=2024, month=9, day=4))
-    thursday = Day("Thursday", every_day_tasks + [hdr_amp, sad, hdr_amp, hdr_amp],
+    thursday = Day("Thursday", every_day_tasks + [hdr_amp, hdr_amp, hdr_amp],
                    DateTimeClass(year=2024, month=9, day=5))
-    friday = Day("Friday", every_day_tasks + [sad, sad, iort_tx, iort_tx, hdr_amp, hdr_amp],
+    friday = Day("Friday", every_day_tasks + [iort_tx, iort_tx, hdr_amp, hdr_amp],
                  DateTimeClass(year=2024, month=9, day=6))
     week2 = Week("9/2/204", [monday, tuesday, wednesday, thursday, friday])
 
