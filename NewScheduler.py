@@ -51,8 +51,11 @@ class DateTimeClass(object):
     def to_days(self):
         return (self.year * 365) + (self.month * 31) + self.day
 
+    def __repr__(self):
+        return f"{self.month}/{self.day}/{self.year}"
 
-class Task:
+
+class AbstractTask:
     name: str
     weight: float
     location: Optional[str]
@@ -72,6 +75,20 @@ class Task:
     def __repr__(self):
         return (f"Task(name={self.name}, weight={self.weight}, "
                 f"compatible_with={self.compatible_with}, requires={self.requires}, location={self.location})")
+
+
+class Task(AbstractTask):
+    date: DateTimeClass
+
+    def __init__(self, abstract_task: AbstractTask, date: DateTimeClass):
+        super().__init__(
+            name=abstract_task.name,
+            weight=abstract_task.weight,
+            compatible_with=abstract_task.compatible_with,
+            requires=abstract_task.requires,
+            location=abstract_task.location
+        )
+        self.date = date
 
 
 class Preference:
@@ -279,14 +296,15 @@ class Scheduler:
                         if person.current_weight >= person.max_weight:
                             # If current weight exceeds or equals max weight, prioritize lower-weight tasks
                             # tasks.sort(key=lambda t: t.weight)
-                            tasks = [Task("Dev", 0.0, location="Away")]
+                            tasks = [Task(AbstractTask("Dev", 0.0, location="Away"), day.date)]
                         else:
                             # Otherwise, sort based on the remaining capacity difference
                             tasks.sort(key=lambda t: abs(person.max_weight - person.current_weight - t.weight))
                     else:
                         tasks = []
-                        if person.can_perform_task(Task("Dev", 0.0, location="Away"), day.to_string()):
-                            tasks = [Task("Dev", 0.0, location="Away")]
+                        if person.can_perform_task(AbstractTask("Dev", 0.0, location="Away"),
+                                                   day.to_string()):
+                            tasks = [Task(AbstractTask("Dev", 0.0, location="Away"), day.date)]
                     if tasks:
                         task = tasks[0]
                         daily_schedule.append(self.assign_task(person, task, day))
