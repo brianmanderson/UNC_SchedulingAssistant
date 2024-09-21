@@ -92,11 +92,11 @@ class Task(AbstractTask):
 
 
 class Preference:
-    day: str
+    day: DateTimeClass
     task_or_location: str
     weight: float
 
-    def __init__(self, day: str, task_or_location: str, weight: float):
+    def __init__(self, day: DateTimeClass, task_or_location: str, weight: float):
         self.day = day
         self.task_or_location = task_or_location
         self.weight = weight
@@ -110,10 +110,10 @@ class Person:
     avoid_preferences: List[Preference]
     schedule: List[Tuple[str, Task]]
     current_weight: float
-    performable_tasks: List[str]
+    performable_tasks: List[AbstractTask]
 
     def __init__(self, name: str, weight_per_day: float, preferences: Optional[List[Preference]] = None,
-                 avoid_preferences: Optional[List[Preference]] = None, performable_tasks: Optional[List[str]] = None):
+                 avoid_preferences: Optional[List[Preference]] = None, performable_tasks: Optional[List[AbstractTask]] = None):
         self.name = name
         self.weight_per_day = weight_per_day
         self.preferences = preferences if preferences else []
@@ -124,26 +124,30 @@ class Person:
         # Set default performable tasks
         if performable_tasks is None:
             self.performable_tasks = []
-        for t in ['Dev', 'HalfDev', 'Vacation']:
+        self.add_dev_vacation()
+
+    def add_dev_vacation(self):
+        for t in [AbstractTask('Dev', 0.0), AbstractTask('HalfDev', 0.0),
+                  AbstractTask('Vacation', 0.0, location='Vacation')]:
             if t not in self.performable_tasks:
                 self.performable_tasks.append(t)
 
     def add_day(self):
         self.max_weight += self.weight_per_day
 
-    def can_perform_task(self, task: Task, day: str) -> bool:
+    def can_perform_task(self, task: Task) -> bool:
         # Check if this is in their avoidance preferences
         for avoid_pref in self.avoid_preferences:
-            if avoid_pref.day == day and (task.name == avoid_pref.task_or_location or
-                                          task.location == avoid_pref.task_or_location):
+            if avoid_pref.day == task.date and (task.name == avoid_pref.task_or_location or
+                                                task.location == avoid_pref.task_or_location):
                 return False
 
         # Check if the person can perform the task
-        if task.name not in self.performable_tasks:
+        if task.name not in [i.name for i in self.performable_tasks]:
             return False
 
         # Check location compatibility with tasks already scheduled on the same day
-        day_schedule = [t for d, t in self.schedule if d == day]
+        day_schedule = [t for d, t in self.schedule if d == task.date]
         for scheduled_task in day_schedule:
             # Location check
             if (scheduled_task.location is not None and task.location is not None
@@ -157,8 +161,8 @@ class Person:
                 return False
         return True
 
-    def assign_task(self, task: Task, day: str):
-        self.schedule.append((day, task))
+    def assign_task(self, task: Task):
+        self.schedule.append((task.date.to_string(), task))
         self.current_weight += task.weight
 
     def __repr__(self):
@@ -167,13 +171,19 @@ class Person:
 
 class Physicist(Person):
     def __init__(self, name: str, weight_per_day: float, preferences: Optional[List[Preference]] = None,
-                 avoid_preferences: Optional[List[Preference]] = None, performable_tasks: Optional[List[str]] = None):
+                 avoid_preferences: Optional[List[Preference]] = None,
+                 performable_tasks: Optional[List[AbstractTask]] = None):
         # Define the performable tasks for a Physicist
         if performable_tasks is None:
             performable_tasks = []
         performable_tasks += [
-            'POD', 'POD_Backup', 'SAD', 'SAD_Assist', 'HBO',
-            'HDR_AMP', 'IORTTx'
+            AbstractTask('POD', weight=0.0, location='UNC'),
+            AbstractTask('POD_Backup', weight=0.0, location='UNC'),
+            AbstractTask('SAD', weight=0.0, location=None),
+            AbstractTask('SAD_Assist', weight=0.0, location=None),
+            AbstractTask('HBO', 0.0, location='HBO'),
+            AbstractTask("HDR_AMP", 0.0, location='UNC'),
+            AbstractTask('IORTTx', 0.0, location='UNC')
         ]
         super().__init__(name, weight_per_day, preferences, avoid_preferences, performable_tasks)
 
@@ -240,8 +250,8 @@ class Scheduler:
         self.days = []
         self.schedule = {}
 
-    def assign_task(self, person: Person, task: Task, day: Day) -> Tuple[Person, Task]:
-        person.assign_task(task, day.to_string())
+    def assign_task(self, person: Person, task: Task) -> Tuple[Person, Task]:
+        person.assign_task(task)
         return person, task
 
     def fulfill_requests(self, minimum_weight=0.0):
@@ -269,7 +279,7 @@ class Scheduler:
                     # Find the task or location in the day's tasks
                     tasks = [t for t in day.tasks if (t.name == preference.task_or_location or
                              t.location == preference.task_or_location) and t.weight > 1.0
-                             and person.can_perform_task(t, day.to_string())]
+                             and person.can_perform_task(t)]
                     if not tasks:
                         continue
                     # Sort tasks based on the current weight vs. max weight
@@ -277,21 +287,22 @@ class Scheduler:
                         # If current weight exceeds or equals max weight, prioritize lower-weight tasks
                         # tasks.sort(key=lambda t: t.weight)
                         tasks = []
-                        if person.can_perform_task(Task("Dev", 0.0, location="Away"), day.to_string()):
-                            tasks = [Task("Dev", 0.0, location="Away")]
+                        dev_task = Task(AbstractTask("Dev", 0.0), day.date)
+                        if person.can_perform_task(dev_task):
+                            tasks = [dev_task]
                     else:
                         # Otherwise, sort based on the remaining capacity difference
                         tasks.sort(key=lambda t: abs(person.max_weight - person.current_weight - t.weight))
                     if tasks:
                         task = tasks[0]
-                        daily_schedule.append(self.assign_task(person, task, day))
+                        daily_schedule.append(self.assign_task(person, task))
                         if task in day.tasks:
                             day.tasks.remove(task)
                 else:
                     # Handle avoid preferences: Try to find the next available task that meets the criteria
                     tasks = [t for t in day.tasks if t.name != preference.task_or_location and
                              t.location != preference.task_or_location and t.weight > 1.0
-                             and person.can_perform_task(t, day.to_string())]
+                             and person.can_perform_task(t)]
                     if tasks:
                         if person.current_weight >= person.max_weight:
                             # If current weight exceeds or equals max weight, prioritize lower-weight tasks
@@ -302,19 +313,19 @@ class Scheduler:
                             tasks.sort(key=lambda t: abs(person.max_weight - person.current_weight - t.weight))
                     else:
                         tasks = []
-                        if person.can_perform_task(AbstractTask("Dev", 0.0, location="Away"),
-                                                   day.to_string()):
+                        if person.can_perform_task(Task(AbstractTask("Dev", 0.0, location="Away"),
+                                                   day.date)):
                             tasks = [Task(AbstractTask("Dev", 0.0, location="Away"), day.date)]
                     if tasks:
                         task = tasks[0]
-                        daily_schedule.append(self.assign_task(person, task, day))
+                        daily_schedule.append(self.assign_task(person, task))
                         if task in day.tasks:
                             day.tasks.remove(task)
                         # Handle required tasks for the assigned task
                         for required_task_name in task.requires:
                             required_task = next((t for t in day.tasks if t.name == required_task_name), None)
-                            if required_task and person.can_perform_task(required_task, day.to_string()):
-                                daily_schedule.append(self.assign_task(person, required_task, day))
+                            if required_task and person.can_perform_task(required_task):
+                                daily_schedule.append(self.assign_task(person, required_task))
                                 day.tasks.remove(required_task)
 
     def create_schedule(self) -> Dict[str, List[Tuple[Person, Task]]]:
@@ -346,35 +357,37 @@ class Scheduler:
                 while day.tasks:
                     task = day.tasks.pop(0)
                     people = sorted(self.people, key=lambda p: p.max_weight - p.current_weight, reverse=True)
-                    candidates = [p for p in people if p.can_perform_task(task, day.to_string())]
+                    candidates = [p for p in people if p.can_perform_task(task)]
 
                     # If no suitable candidates, pick the one with the lowest current weight
                     if not candidates:
                         candidates = sorted(self.people, key=lambda p: p.max_weight - p.current_weight, reverse=True)
 
                     selected_person = candidates[0]
-                    daily_schedule.append(self.assign_task(selected_person, task, day))
+                    daily_schedule.append(self.assign_task(selected_person, task))
                     self.assigned_tasks.append(task.name)
 
                     # Handle required tasks
                     for required_task_name in task.requires:
                         required_task = next((t for t in day.tasks if t.name == required_task_name), None)
-                        if required_task and selected_person.can_perform_task(task, day.to_string()):
-                            daily_schedule.append(self.assign_task(selected_person, required_task, day))
+                        if required_task and selected_person.can_perform_task(task):
+                            daily_schedule.append(self.assign_task(selected_person, required_task))
                             self.assigned_tasks.append(required_task_name)
                             day.tasks.remove(required_task)
 
                 # Assign Dev tasks to those with remaining weight capacity
                 for person in self.people:
                     if day.to_string() not in [d for d, _ in person.schedule]:
-                        daily_schedule.append(self.assign_task(person, Task("Dev", 0.0), day))
+                        dev = Task(AbstractTask("Dev", 0.0), day.date)
+                        daily_schedule.append(self.assign_task(person, dev))
                     else:
                         weight = 0
                         for d, task in person.schedule:
                             if d == day.to_string():
                                 weight += task.weight
-                        if weight <= 3.0 and person.can_perform_task(Task("HalfDev", 0.0), day.to_string()):
-                            daily_schedule.append(self.assign_task(person, Task("HalfDev", 0.0), day))
+                        half_dev = Task(AbstractTask("HalfDev", 0.0), day.date)
+                        if weight <= 3.0 and person.can_perform_task(half_dev):
+                            daily_schedule.append(self.assign_task(person, half_dev))
             remaining_tasks = []
             for day in self.days:
                 remaining_tasks += [day.to_string() + ':' + i.name for i in day.tasks]
@@ -396,9 +409,9 @@ class Scheduler:
 
 def main():
     # Define tasks
-    vacation = Task("Vacation", weight=0.0, location="Vacation")
-    pod = Task("POD", 4.5, location='UNC', requires=["HDR_AMP", "IORTTx"])
-    sad = Task("SAD", 3.0, location=None)
+    vacation = AbstractTask("Vacation", weight=0.0, location="Vacation")
+    pod = AbstractTask("POD", 4.5, location='UNC', requires=["HDR_AMP", "IORTTx"])
+    sad = AbstractTask("SAD", 3.0, location=None)
     sad_assist = Task("SAD_Assist", 2.0, location=None)
     gamma_tile = Task("Gamma_Tile", 3.0, location="UNC")
     prostate_brachy = Task("Prostate_Brachy", 3.0, location='UNC', compatible_with=['SAD', 'SAD_Assist'])
