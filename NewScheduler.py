@@ -127,7 +127,7 @@ class Person:
         self.add_dev_vacation()
 
     def add_dev_vacation(self):
-        for t in [AbstractTask('Dev', 0.0), AbstractTask('HalfDev', 0.0),
+        for t in [AbstractTask('Dev', 0.0, location="Away"), AbstractTask('HalfDev', 0.0),
                   AbstractTask('Vacation', 0.0, location='Vacation')]:
             if t not in self.performable_tasks:
                 self.performable_tasks.append(t)
@@ -412,16 +412,17 @@ def main():
     vacation = AbstractTask("Vacation", weight=0.0, location="Vacation")
     pod = AbstractTask("POD", 4.5, location='UNC', requires=["HDR_AMP", "IORTTx"])
     sad = AbstractTask("SAD", 3.0, location=None)
-    sad_assist = Task("SAD_Assist", 2.0, location=None)
-    gamma_tile = Task("Gamma_Tile", 3.0, location="UNC")
-    prostate_brachy = Task("Prostate_Brachy", 3.0, location='UNC', compatible_with=['SAD', 'SAD_Assist'])
-    hbo = Task("HBO", 2.0, compatible_with=["SAD_Assist", "SAD"], location='HBO')
-    pod_backup = Task("POD_Backup", 2.0, requires=["SAD_Assist", "HDR_AMP", "IORTTx", "Prostate_Brachy"], location='UNC')
-    hdr_amp = Task("HDR_AMP", 1.0, compatible_with=["POD", "POD_Backup"], location='UNC')
-    iort_tx = Task("IORTTx", 2.0, compatible_with=["POD", "POD_Backup"], location='UNC')
-    dev = Task("Dev", 0.0, location="Away")
-
-    # Define people with max_weight
+    sad_assist = AbstractTask("SAD_Assist", 2.0, location=None)
+    gamma_tile = AbstractTask("Gamma_Tile", 3.0, location="UNC")
+    prostate_brachy = AbstractTask("Prostate_Brachy", 3.0, location='UNC',
+                                   compatible_with=['SAD', 'SAD_Assist'])
+    hbo = AbstractTask("HBO", 2.0, compatible_with=["SAD_Assist", "SAD"], location='HBO')
+    pod_backup = AbstractTask("POD_Backup", 2.0,
+                              requires=["SAD_Assist", "HDR_AMP", "IORTTx", "Prostate_Brachy"], location='UNC')
+    hdr_amp = AbstractTask("HDR_AMP", 1.0, compatible_with=["POD", "POD_Backup"], location='UNC')
+    iort_tx = AbstractTask("IORTTx", 2.0, compatible_with=["POD", "POD_Backup"], location='UNC')
+    dev = AbstractTask("Dev", 0.0, location="Away")
+    half_dev = AbstractTask("Dev", 0.0, location=None)
     # Define people with max_weight
     people = []
 
@@ -429,7 +430,7 @@ def main():
     leith = Physicist(
         "Leith",
         weight_per_day=12 / 5,
-        preferences=[Preference("Monday_8/26/2024", "POD", weight=7.0)]
+        preferences=[Preference(DateTimeClass(2024, 8, 26), "POD", weight=7.0)]
     )
     people.append(leith)
 
@@ -444,7 +445,7 @@ def main():
     )
     people.append(taki)
 
-    # Dance can perform 'Gamma_Tile', 'Dev', 'HalfDev', and 'Vacation'
+    # Dance can perform 'Gamma_Tile'
     dance = Physicist(
         "Dance",
         weight_per_day=18 / 5,
@@ -452,7 +453,7 @@ def main():
             Preference("Thursday_8/29/2024", "Gamma_Tile", weight=9.0),
             Preference("Friday_8/30/2024", "Gamma_Tile", weight=9.0)
         ],
-        performable_tasks=['Gamma_Tile']
+        performable_tasks=[AbstractTask("GammaTile", 0.0, location='UNC')]
     )
     people.append(dance)
 
