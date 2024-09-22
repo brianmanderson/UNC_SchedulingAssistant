@@ -408,7 +408,7 @@ class Scheduler:
 
 
 def main():
-    # Define tasks
+    # Define abstract tasks
     vacation = AbstractTask("Vacation", weight=0.0, location="Vacation")
     pod = AbstractTask("POD", 4.5, location='UNC', requires=["HDR_AMP", "IORTTx"])
     sad = AbstractTask("SAD", 3.0, location=None)
@@ -422,7 +422,15 @@ def main():
     hdr_amp = AbstractTask("HDR_AMP", 1.0, compatible_with=["POD", "POD_Backup"], location='UNC')
     iort_tx = AbstractTask("IORTTx", 2.0, compatible_with=["POD", "POD_Backup"], location='UNC')
     dev = AbstractTask("Dev", 0.0, location="Away")
-    half_dev = AbstractTask("Dev", 0.0, location=None)
+    half_dev = AbstractTask("HalfDev", 0.0, location=None)
+
+    # Define date instances for each day
+    date_monday = DateTimeClass(2024, 8, 26)
+    date_tuesday = DateTimeClass(2024, 8, 27)
+    date_wednesday = DateTimeClass(2024, 8, 28)
+    date_thursday = DateTimeClass(2024, 8, 29)
+    date_friday = DateTimeClass(2024, 8, 30)
+
     # Define people with max_weight
     people = []
 
@@ -430,7 +438,7 @@ def main():
     leith = Physicist(
         "Leith",
         weight_per_day=12 / 5,
-        preferences=[Preference(DateTimeClass(2024, 8, 26), "POD", weight=7.0)]
+        preferences=[Preference(date_monday, "POD", weight=7.0)]
     )
     people.append(leith)
 
@@ -439,8 +447,8 @@ def main():
         "Taki",
         weight_per_day=12 / 5,
         preferences=[
-            Preference("Monday_8/26/2024", "Dev", weight=7.0),
-            Preference("Tuesday_8/27/2024", "Dev", weight=7.0)
+            Preference(date_monday, "Dev", weight=7.0),
+            Preference(date_tuesday, "Dev", weight=7.0)
         ]
     )
     people.append(taki)
@@ -450,10 +458,12 @@ def main():
         "Dance",
         weight_per_day=18 / 5,
         preferences=[
-            Preference("Thursday_8/29/2024", "Gamma_Tile", weight=9.0),
-            Preference("Friday_8/30/2024", "Gamma_Tile", weight=9.0)
+            Preference(date_thursday, "Gamma_Tile", weight=9.0),
+            Preference(date_friday, "Gamma_Tile", weight=9.0)
         ],
-        performable_tasks=[AbstractTask("GammaTile", 0.0, location='UNC')]
+        performable_tasks=[
+            AbstractTask("Gamma_Tile", 0.0, location='UNC')
+        ]
     )
     people.append(dance)
 
@@ -461,7 +471,7 @@ def main():
     adria = Physicist(
         "Adria",
         weight_per_day=18 / 5,
-        preferences=[Preference("Monday_8/26/2024", "Vacation", weight=9.0)]
+        preferences=[Preference(date_monday, "Vacation", weight=9.0)]
     )
     people.append(adria)
 
@@ -469,8 +479,10 @@ def main():
     cielle = Physicist(
         "Cielle",
         weight_per_day=18 / 5,
-        preferences=[Preference("Monday_8/26/2024", "Prostate_Brachy", weight=9.0)],
-        performable_tasks=['Prostate_Brachy']
+        preferences=[Preference(date_monday, "Prostate_Brachy", weight=9.0)],
+        performable_tasks=[
+            AbstractTask('Prostate_Brachy', weight=0.0, location='UNC')
+        ]
     )
     people.append(cielle)
 
@@ -479,8 +491,8 @@ def main():
         "Brian",
         weight_per_day=12 / 5,
         preferences=[
-            Preference("Monday_8/26/2024", "POD_Backup", weight=3.0),
-            Preference("Friday_8/30/2024", "SAD", weight=7.0)
+            Preference(date_monday, "POD_Backup", weight=3.0),
+            Preference(date_friday, "SAD", weight=7.0)
         ]
     )
     people.append(brian)
@@ -490,27 +502,29 @@ def main():
         "David",
         weight_per_day=12 / 5,
         avoid_preferences=[
-            Preference("Monday_8/26/2024", "HBO", weight=9.0),
-            Preference("Monday_8/26/2024", "UNC", weight=9.0),
-            Preference("Tuesday_8/27/2024", "HBO", weight=9.0),
-            Preference("Tuesday_8/27/2024", "UNC", weight=9.0),
-            Preference("Wednesday_8/28/2024", "HBO", weight=1.0),
-            Preference("Thursday_8/29/2024", "HBO", weight=1.0),
-            Preference("Friday_8/30/2024", "HBO", weight=1.0),
-            Preference("Friday_8/30/2024", "UNC", weight=1.0)
+            Preference(date_monday, "HBO", weight=9.0),
+            Preference(date_monday, "UNC", weight=9.0),
+            Preference(date_tuesday, "HBO", weight=9.0),
+            Preference(date_tuesday, "UNC", weight=9.0),
+            Preference(date_wednesday, "HBO", weight=1.0),
+            Preference(date_thursday, "HBO", weight=1.0),
+            Preference(date_friday, "HBO", weight=1.0),
+            Preference(date_friday, "UNC", weight=1.0)
         ]
     )
     people.append(david)
 
-    # Jun can perform 'Prostate_Brachy', 'Dev', 'HalfDev', and 'Vacation'
+    # Jun can perform 'Prostate_Brachy'
     jun = Physicist(
         "Jun",
         weight_per_day=12 / 5,
         preferences=[
-            Preference("Monday_8/26/2024", "Prostate_Brachy", weight=9.0),
-            Preference("Friday_8/30/2024", "Vacation", weight=9.0)
+            Preference(date_monday, "Prostate_Brachy", weight=9.0),
+            Preference(date_friday, "Vacation", weight=9.0)
         ],
-        performable_tasks=['Prostate_Brachy']
+        performable_tasks=[
+            AbstractTask('Prostate_Brachy', weight=0.0, location='UNC')
+        ]
     )
     people.append(jun)
 
@@ -519,61 +533,59 @@ def main():
         "Ross",
         weight_per_day=18 / 5,
         preferences=[
-            Preference("Friday_8/30/2024", "Vacation", weight=9.0)
+            Preference(date_friday, "Vacation", weight=9.0)
         ]
     )
     people.append(ross)
 
-    # Define days with specific tasks
+    # Define tasks for each day
     every_day_tasks = [pod, pod, hbo, pod_backup, sad]
-    monday = Day("Monday", every_day_tasks + [prostate_brachy, prostate_brachy],
-                 DateTimeClass(year=2024, month=8, day=26))
-    tuesday = Day("Tuesday", every_day_tasks + [hdr_amp, hdr_amp, hdr_amp, hdr_amp],
-                  DateTimeClass(year=2024, month=8, day=27))
-    wednesday = Day("Wednesday", every_day_tasks,
-                    DateTimeClass(year=2024, month=8, day=28))
-    thursday = Day("Thursday", every_day_tasks + [hdr_amp, hdr_amp, hdr_amp, gamma_tile],
-                   DateTimeClass(year=2024, month=8, day=29))
-    friday = Day("Friday", every_day_tasks + [iort_tx, hdr_amp, iort_tx, hdr_amp, gamma_tile],
-                 DateTimeClass(year=2024, month=8, day=30))
 
-    # Define weeks (same as before)
+    # Create Task instances for each day
+    monday_tasks = [Task(task, date_monday) for task in every_day_tasks] + [
+        Task(prostate_brachy, date_monday),
+        Task(prostate_brachy, date_monday)
+    ]
+    tuesday_tasks = [Task(task, date_tuesday) for task in every_day_tasks] + [
+        Task(hdr_amp, date_tuesday)] * 4 + [Task(sad_assist, date_tuesday)]
+    wednesday_tasks = [Task(task, date_wednesday) for task in every_day_tasks] + [
+        Task(sad, date_wednesday)
+    ]
+    thursday_tasks = [Task(task, date_thursday) for task in every_day_tasks] + [
+        Task(hdr_amp, date_thursday)] * 3 + [
+        Task(gamma_tile, date_thursday)
+    ]
+    friday_tasks = [Task(task, date_friday) for task in every_day_tasks] + [
+        Task(iort_tx, date_friday),
+        Task(hdr_amp, date_friday),
+        Task(iort_tx, date_friday),
+        Task(hdr_amp, date_friday),
+        Task(gamma_tile, date_friday)
+    ]
+
+    # Create Day instances
+    monday = Day("Monday", monday_tasks, date_monday)
+    tuesday = Day("Tuesday", tuesday_tasks, date_tuesday)
+    wednesday = Day("Wednesday", wednesday_tasks, date_wednesday)
+    thursday = Day("Thursday", thursday_tasks, date_thursday)
+    friday = Day("Friday", friday_tasks, date_friday)
+
+    # Define week
     week1 = Week("8/26/2024", [monday, tuesday, wednesday, thursday, friday])
-
-    monday = Day("Monday", every_day_tasks + [hdr_amp, hdr_amp, hdr_amp],
-                 DateTimeClass(year=2024, month=9, day=2))
-    tuesday = Day("Tuesday", every_day_tasks + [hdr_amp, hdr_amp, hdr_amp],
-                  DateTimeClass(year=2024, month=9, day=3))
-    wednesday = Day("Wednesday", every_day_tasks,
-                    DateTimeClass(year=2024, month=9, day=4))
-    thursday = Day("Thursday", every_day_tasks + [hdr_amp, hdr_amp, hdr_amp],
-                   DateTimeClass(year=2024, month=9, day=5))
-    friday = Day("Friday", every_day_tasks + [iort_tx, iort_tx, hdr_amp, hdr_amp],
-                 DateTimeClass(year=2024, month=9, day=6))
-    week2 = Week("9/2/204", [monday, tuesday, wednesday, thursday, friday])
 
     # Initialize scheduler
     scheduler = Scheduler()
 
-    # Add people and weeks to scheduler
+    # Add people and days to scheduler
     for p in people:
         scheduler.add_person(p)
 
     for day in week1.days:
         scheduler.add_day(day)
-    schedule = scheduler.create_schedule()
-    for day, assignments in schedule.items():
-
-        print(f"---------{day}----------")
-        for person, task in assignments:
-            print(f"{person.name}: {task.name}")
-    # for day in week2.days:
-    #     scheduler.add_day(day)
 
     # Create and print the schedule
     schedule = scheduler.create_schedule()
     for day, assignments in schedule.items():
-
         print(f"---------{day}----------")
         for person, task in assignments:
             print(f"{person.name}: {task.name}")
