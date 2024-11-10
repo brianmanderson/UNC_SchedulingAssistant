@@ -269,8 +269,6 @@ class Scheduler:
             # Find the corresponding day in the scheduler
             day = next((d for d in self.days if d.to_string() == preference.day), None)
             if day:
-                if day.to_string() == "Monday_8/26/2024" and person.name == "David":
-                    x = 1
                 if day.to_string() not in self.schedule:
                     self.schedule[day.to_string()] = []
                 daily_schedule = self.schedule[day.to_string()]
@@ -543,21 +541,16 @@ def main():
 
     # Create Task instances for each day
     monday_tasks = [Task(task, date_monday) for task in every_day_tasks] + [
-        Task(prostate_brachy, date_monday),
         Task(prostate_brachy, date_monday)
     ]
     tuesday_tasks = [Task(task, date_tuesday) for task in every_day_tasks] + [
-        Task(hdr_amp, date_tuesday)] * 4 + [Task(sad_assist, date_tuesday)]
-    wednesday_tasks = [Task(task, date_wednesday) for task in every_day_tasks] + [
-        Task(sad, date_wednesday)
-    ]
+        Task(hdr_amp, date_tuesday)]
+    wednesday_tasks = [Task(task, date_wednesday) for task in every_day_tasks]
     thursday_tasks = [Task(task, date_thursday) for task in every_day_tasks] + [
-        Task(hdr_amp, date_thursday)] * 3 + [
+        Task(hdr_amp, date_thursday)] + [
         Task(gamma_tile, date_thursday)
     ]
     friday_tasks = [Task(task, date_friday) for task in every_day_tasks] + [
-        Task(iort_tx, date_friday),
-        Task(hdr_amp, date_friday),
         Task(iort_tx, date_friday),
         Task(hdr_amp, date_friday),
         Task(gamma_tile, date_friday)
