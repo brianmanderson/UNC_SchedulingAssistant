@@ -123,7 +123,8 @@ class Person:
         self.max_weight = 0.0
         # Set default performable tasks
         if performable_tasks is None:
-            self.performable_tasks = []
+            performable_tasks = []
+        self.performable_tasks = performable_tasks
         self.add_dev_vacation()
 
     def add_dev_vacation(self):
@@ -135,11 +136,13 @@ class Person:
     def add_day(self):
         self.max_weight += self.weight_per_day
 
-    def can_perform_task(self, task: Task) -> bool:
+    def can_perform_task(self, task: Task, weight: float) -> bool:
         # Check if this is in their avoidance preferences
         for avoid_pref in self.avoid_preferences:
-            if avoid_pref.day == task.date and (task.name == avoid_pref.task_or_location or
-                                                task.location == avoid_pref.task_or_location):
+            if (avoid_pref.day == task.date and
+                    (task.name == avoid_pref.task_or_location or
+                     task.location == avoid_pref.task_or_location) and
+                    avoid_pref.weight > weight):
                 return False
 
         # Check if the person can perform the task
@@ -148,6 +151,8 @@ class Person:
 
         # Check location compatibility with tasks already scheduled on the same day
         day_schedule = [t for d, t in self.schedule if d == task.date]
+        if self.name == 'Dance' and len(self.schedule) != 0:
+            x = 1
         for scheduled_task in day_schedule:
             # Location check
             if (scheduled_task.location is not None and task.location is not None
@@ -203,7 +208,7 @@ class Day:
         return f"Day(name={self.name}, tasks={self.tasks}, date={self.date})"
 
     def to_string(self):
-        return self.name + '_' + self.date.to_string()
+        return self.date.to_string()
 
 
 class Week:
@@ -228,17 +233,49 @@ def sort_schedule_by_person_name(schedule: Dict[str, List[Tuple[Person, Task]]])
     return schedule
 
 
+def get_tasks_sorted_by_performability(days: List[Day], people: List[Person]) -> List[Task]:
+    # Create a list to keep track of tasks and the number of people who can perform each task
+    task_performability = []
+
+    # Iterate over each day and each task within the day
+    for day in days:
+        for task in day.tasks:
+            # Count the number of people who can perform this task
+            count = 0
+            for person in people:
+                if person.can_perform_task(task, task.weight):
+                    count += 1
+            # Add the task and its count to the list
+            task_performability.append((task, count))
+
+    # Sort tasks by the number of people who can perform them in ascending order
+    task_performability.sort(key=lambda x: x[1])
+
+    # Extract sorted tasks from the list of tuples
+    sorted_tasks = [task for task, _ in task_performability]
+
+    return sorted_tasks
+
+
+def get_day_by_string(days: List[Day], day_str: str) -> Optional[Day]:
+    for day in days:
+        if day.to_string() == day_str:
+            return day
+    return None
+
+
 class Scheduler:
     people: List[Person]
     schedule: Dict[str, List[Tuple[Person, Task]]]
     days: List[Day]
     assigned_tasks: List[str]
+    tasks_by_possibility: List[Task]
 
     def __init__(self):
         self.people = []
         self.days = []
         self.schedule = {}
-        self.assigned_tasks = []
+        self.tasks_by_possibility = []
 
     def add_person(self, person: Person):
         self.people.append(person)
@@ -254,6 +291,45 @@ class Scheduler:
         person.assign_task(task)
         return person, task
 
+    def get_day_by_string(self, day_str: str) -> Optional[Day]:
+        for day in self.days:
+            if day.to_string() == day_str:
+                return day
+        return None
+
+    def assign_required_tasks(self, person: Person, task: Task, day: Day):
+        for required_task_name in task.requires:
+            required_task = next((t for t in day.tasks if t.name == required_task_name), None)
+            if required_task and person.can_perform_task(required_task, task.weight):
+                self.schedule[day.to_string()].append(self.assign_task(person, required_task))
+                day.tasks.remove(required_task)
+                self.tasks_by_possibility.remove(required_task)
+
+    def handle_preference_assignment(self, person: Person, preference: Preference, day: Day, is_preference: bool):
+        if is_preference:
+            tasks = [t for t in day.tasks if t.name == preference.task_or_location or t.location == preference.task_or_location]
+        else:
+            tasks = [t for t in day.tasks if t.name != preference.task_or_location and t.location != preference.task_or_location]
+        tasks = [t for t in tasks if t.weight > 1.0 and person.can_perform_task(t, preference.weight)]
+
+        if not tasks:
+            return
+
+        # Sort tasks based on remaining capacity difference or lower weight if max weight is reached
+        if person.current_weight >= person.max_weight:
+            tasks = [Task(AbstractTask("Dev", 0.0, location="Away"), day.date)] if person.can_perform_task(Task(AbstractTask("Dev", 0.0, location="Away"), day.date), preference.weight) else []
+        else:
+            tasks.sort(key=lambda t: abs(person.max_weight - person.current_weight - t.weight))
+
+        if tasks:
+            task = tasks[0]
+            self.schedule[day.to_string()].append(self.assign_task(person, task))
+            if task in day.tasks:
+                day.tasks.remove(task)
+            if task in self.tasks_by_possibility:
+                self.tasks_by_possibility.remove(task)
+            self.assign_required_tasks(person, task, day)
+
     def fulfill_requests(self, minimum_weight=0.0):
         """Attempt to fulfill the requests of each person before general scheduling."""
         # Combine preferences and avoid_preferences into a single list
@@ -267,139 +343,89 @@ class Scheduler:
 
         for person, preference, is_preference in all_preferences:
             # Find the corresponding day in the scheduler
-            day = next((d for d in self.days if d.to_string() == preference.day), None)
+            day = self.get_day_by_string(preference.day.to_string())
             if day:
                 if day.to_string() not in self.schedule:
                     self.schedule[day.to_string()] = []
-                daily_schedule = self.schedule[day.to_string()]
-
-                if is_preference:
-                    # Find the task or location in the day's tasks
-                    tasks = [t for t in day.tasks if (t.name == preference.task_or_location or
-                             t.location == preference.task_or_location) and t.weight > 1.0
-                             and person.can_perform_task(t)]
-                    if not tasks:
-                        continue
-                    # Sort tasks based on the current weight vs. max weight
-                    if person.current_weight >= person.max_weight:
-                        # If current weight exceeds or equals max weight, prioritize lower-weight tasks
-                        # tasks.sort(key=lambda t: t.weight)
-                        tasks = []
-                        dev_task = Task(AbstractTask("Dev", 0.0), day.date)
-                        if person.can_perform_task(dev_task):
-                            tasks = [dev_task]
-                    else:
-                        # Otherwise, sort based on the remaining capacity difference
-                        tasks.sort(key=lambda t: abs(person.max_weight - person.current_weight - t.weight))
-                    if tasks:
-                        task = tasks[0]
-                        daily_schedule.append(self.assign_task(person, task))
-                        if task in day.tasks:
-                            day.tasks.remove(task)
-                else:
-                    # Handle avoid preferences: Try to find the next available task that meets the criteria
-                    tasks = [t for t in day.tasks if t.name != preference.task_or_location and
-                             t.location != preference.task_or_location and t.weight > 1.0
-                             and person.can_perform_task(t)]
-                    if tasks:
-                        if person.current_weight >= person.max_weight:
-                            # If current weight exceeds or equals max weight, prioritize lower-weight tasks
-                            # tasks.sort(key=lambda t: t.weight)
-                            tasks = [Task(AbstractTask("Dev", 0.0, location="Away"), day.date)]
-                        else:
-                            # Otherwise, sort based on the remaining capacity difference
-                            tasks.sort(key=lambda t: abs(person.max_weight - person.current_weight - t.weight))
-                    else:
-                        tasks = []
-                        if person.can_perform_task(Task(AbstractTask("Dev", 0.0, location="Away"),
-                                                   day.date)):
-                            tasks = [Task(AbstractTask("Dev", 0.0, location="Away"), day.date)]
-                    if tasks:
-                        task = tasks[0]
-                        daily_schedule.append(self.assign_task(person, task))
-                        if task in day.tasks:
-                            day.tasks.remove(task)
-                        # Handle required tasks for the assigned task
-                        for required_task_name in task.requires:
-                            required_task = next((t for t in day.tasks if t.name == required_task_name), None)
-                            if required_task and person.can_perform_task(required_task):
-                                daily_schedule.append(self.assign_task(person, required_task))
-                                day.tasks.remove(required_task)
+                self.handle_preference_assignment(person, preference, day, is_preference)
 
     def create_schedule(self) -> Dict[str, List[Tuple[Person, Task]]]:
-        for p in self.people:
+        for person in self.people:
             for _ in self.days:
-                p.add_day()
-        # First pass: Fulfill individual requests
+                person.add_day()
+
         starting_people = copy.deepcopy(self.people)
         starting_days = copy.deepcopy(self.days)
-        starting_tasks = []
-        for d in starting_days:
-            starting_tasks += d.tasks
+
         request_weight = -1.0
         while request_weight < 8.0:
             request_weight += 1.0
-            self.assigned_tasks = []
             self.schedule = {}
             self.people = copy.deepcopy(starting_people)
             self.days = copy.deepcopy(starting_days)
+
+            # Fulfill preferences
             self.fulfill_requests(minimum_weight=request_weight)
 
-            # Second pass: Schedule remaining tasks
-            # Do a random shuffle, otherwise it'll heavy schedule on Monday first
-            random.Random(None).shuffle(self.days)
-            for day in self.days:
-                if day.to_string() not in self.schedule:
-                    self.schedule[day.to_string()] = []
-                daily_schedule = self.schedule[day.to_string()]
-                while day.tasks:
-                    task = day.tasks.pop(0)
-                    people = sorted(self.people, key=lambda p: p.max_weight - p.current_weight, reverse=True)
-                    candidates = [p for p in people if p.can_perform_task(task)]
+            # Assign remaining tasks
+            random.shuffle(self.days)
+            self.tasks_by_possibility = get_tasks_sorted_by_performability(self.days, self.people)
+            while self.tasks_by_possibility:
+                task = self.tasks_by_possibility.pop(0)
+                day = self.get_day_by_string(task.date.to_string())
+                if day:
+                    if day.to_string() == '8/27/2024':
+                        x = 1
+                    if day.to_string() not in self.schedule:
+                        self.schedule[day.to_string()] = []
 
-                    # If no suitable candidates, pick the one with the lowest current weight
-                    if not candidates:
-                        candidates = sorted(self.people, key=lambda p: p.max_weight - p.current_weight, reverse=True)
+                    # Sort people by remaining weight capacity
+                    people_sorted = sorted(self.people, key=lambda p: p.max_weight -
+                                                                      p.current_weight if p.current_weight != 0 else 999
+                                           , reverse=True)
+                    candidates = [p for p in people_sorted if p.can_perform_task(task, request_weight)]
 
-                    selected_person = candidates[0]
-                    daily_schedule.append(self.assign_task(selected_person, task))
-                    self.assigned_tasks.append(task.name)
+                    # If no suitable candidates, break and bump up the request weight
+                    if candidates:
+                        selected_person = candidates[0]
+                    else:
+                        break
+                    self.schedule[day.to_string()].append(self.assign_task(selected_person, task))
+                    day.tasks.remove(task)
 
                     # Handle required tasks
-                    for required_task_name in task.requires:
-                        required_task = next((t for t in day.tasks if t.name == required_task_name), None)
-                        if required_task and selected_person.can_perform_task(task):
-                            daily_schedule.append(self.assign_task(selected_person, required_task))
-                            self.assigned_tasks.append(required_task_name)
-                            day.tasks.remove(required_task)
+                    self.assign_required_tasks(selected_person, task, day)
 
-                # Assign Dev tasks to those with remaining weight capacity
-                for person in self.people:
-                    if day.to_string() not in [d for d, _ in person.schedule]:
-                        dev = Task(AbstractTask("Dev", 0.0), day.date)
-                        daily_schedule.append(self.assign_task(person, dev))
-                    else:
-                        weight = 0
-                        for d, task in person.schedule:
-                            if d == day.to_string():
-                                weight += task.weight
-                        half_dev = Task(AbstractTask("HalfDev", 0.0), day.date)
-                        if weight <= 3.0 and person.can_perform_task(half_dev):
-                            daily_schedule.append(self.assign_task(person, half_dev))
-            remaining_tasks = []
-            for day in self.days:
-                remaining_tasks += [day.to_string() + ':' + i.name for i in day.tasks]
+            if self.tasks_by_possibility:
+                """
+                This means we broke out of the loop above because there were tasks nobody could complete
+                """
+                continue
+            # Assign Dev tasks to those with remaining weight capacity
+            # for day in self.days:
+            #     for person in self.people:
+            #         if day.to_string() not in [d for d, _ in person.schedule]:
+            #             dev_task = Task(AbstractTask("Dev", 0.0), day.date)
+            #             if person.can_perform_task(dev_task, request_weight):
+            #                 self.schedule[day.to_string()].append(self.assign_task(person, dev_task))
+            #         else:
+            #             weight = sum(task.weight for d, task in person.schedule if d == day.to_string())
+            #             half_dev_task = Task(AbstractTask("HalfDev", 0.0), day.date)
+            #             if weight <= 3.0 and person.can_perform_task(half_dev_task, request_weight):
+            #                 self.schedule[day.to_string()].append(self.assign_task(person, half_dev_task))
+
+            remaining_tasks = [f"{day.to_string()}:{task.name}" for day in self.days for task in day.tasks]
             if len(remaining_tasks) == 0:
                 break
             else:
                 print(f"Could not assign all tasks, {len(remaining_tasks)} remain")
                 for remaining_task in remaining_tasks:
                     print(remaining_task)
+
         # Sort the schedule based on day.date.to_days()
         sorted_schedule = dict(
             sorted(self.schedule.items(), key=lambda item: next(
-                (d.date.to_days() for d in self.days if
-                 item[0] == d.to_string()), float('inf'))))
+                (d.date.to_days() for d in self.days if item[0] == d.to_string()), float('inf'))))
         sorted_schedule = sort_schedule_by_person_name(sorted_schedule)
         self.schedule = sorted_schedule
         return self.schedule
@@ -447,6 +473,9 @@ def main():
         preferences=[
             Preference(date_monday, "Dev", weight=7.0),
             Preference(date_tuesday, "Dev", weight=7.0)
+        ],
+        performable_tasks=[
+            AbstractTask("Gamma_Tile", 0.0, location='UNC')
         ]
     )
     people.append(taki)
@@ -455,10 +484,7 @@ def main():
     dance = Physicist(
         "Dance",
         weight_per_day=18 / 5,
-        preferences=[
-            Preference(date_thursday, "Gamma_Tile", weight=9.0),
-            Preference(date_friday, "Gamma_Tile", weight=9.0)
-        ],
+        preferences=[],
         performable_tasks=[
             AbstractTask("Gamma_Tile", 0.0, location='UNC')
         ]
@@ -477,7 +503,7 @@ def main():
     cielle = Physicist(
         "Cielle",
         weight_per_day=18 / 5,
-        preferences=[Preference(date_monday, "Prostate_Brachy", weight=9.0)],
+        preferences=[],
         performable_tasks=[
             AbstractTask('Prostate_Brachy', weight=0.0, location='UNC')
         ]
@@ -490,7 +516,7 @@ def main():
         weight_per_day=12 / 5,
         preferences=[
             Preference(date_monday, "POD_Backup", weight=3.0),
-            Preference(date_friday, "SAD", weight=7.0)
+            Preference(date_friday, "SAD", weight=7.0),
         ]
     )
     people.append(brian)
@@ -517,7 +543,6 @@ def main():
         "Jun",
         weight_per_day=12 / 5,
         preferences=[
-            Preference(date_monday, "Prostate_Brachy", weight=9.0),
             Preference(date_friday, "Vacation", weight=9.0)
         ],
         performable_tasks=[
