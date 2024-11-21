@@ -101,6 +101,8 @@ class Preference:
         self.task_or_location = task_or_location
         self.weight = weight
 
+    def __repr__(self):
+        return f"{self.task_or_location} on {self.day}"
 
 class Person:
     name: str
@@ -139,7 +141,7 @@ class Person:
     def can_perform_task(self, task: Task, weight: float) -> bool:
         # Check if this is in their avoidance preferences
         for avoid_pref in self.avoid_preferences:
-            if (avoid_pref.day == task.date and
+            if (avoid_pref.day.to_string() == task.date.to_string() and
                     (task.name == avoid_pref.task_or_location or
                      task.location == avoid_pref.task_or_location) and
                     avoid_pref.weight > weight):
@@ -150,9 +152,7 @@ class Person:
             return False
 
         # Check location compatibility with tasks already scheduled on the same day
-        day_schedule = [t for d, t in self.schedule if d == task.date]
-        if self.name == 'Dance' and len(self.schedule) != 0:
-            x = 1
+        day_schedule = [t for d, t in self.schedule if d == task.date.to_string()]
         for scheduled_task in day_schedule:
             # Location check
             if (scheduled_task.location is not None and task.location is not None
@@ -288,6 +288,8 @@ class Scheduler:
         self.schedule = {}
 
     def assign_task(self, person: Person, task: Task) -> Tuple[Person, Task]:
+        if task in self.tasks_by_possibility:
+            self.tasks_by_possibility.remove(task)
         person.assign_task(task)
         return person, task
 
@@ -303,31 +305,37 @@ class Scheduler:
             if required_task and person.can_perform_task(required_task, task.weight):
                 self.schedule[day.to_string()].append(self.assign_task(person, required_task))
                 day.tasks.remove(required_task)
-                self.tasks_by_possibility.remove(required_task)
+                if required_task in self.tasks_by_possibility:
+                    self.tasks_by_possibility.remove(required_task)
 
-    def handle_preference_assignment(self, person: Person, preference: Preference, day: Day, is_preference: bool):
+    def handle_preference_assignment(self, person: Person, preference: Preference, day: Day, is_preference: bool,
+                                     minimum_weight: float):
+        # If the preference is for Vacation and the task is not present, add it
+        if is_preference and preference.task_or_location in ["Vacation", "Dev"]:
+            vacation_task = Task(AbstractTask(preference.task_or_location, 0.0, location="Away", compatible_with=[]), day.date)
+            day.tasks.append(vacation_task)
         if is_preference:
-            tasks = [t for t in day.tasks if t.name == preference.task_or_location or t.location == preference.task_or_location]
+            tasks = [t for t in day.tasks if t.name == preference.task_or_location or t.location == preference.task_or_location
+                     and person.can_perform_task(t, minimum_weight)]
         else:
-            tasks = [t for t in day.tasks if t.name != preference.task_or_location and t.location != preference.task_or_location]
-        tasks = [t for t in tasks if t.weight > 1.0 and person.can_perform_task(t, preference.weight)]
+            tasks = [t for t in day.tasks if t.name != preference.task_or_location and t.location != preference.task_or_location
+                     and person.can_perform_task(t, minimum_weight)]
+        tasks = [t for t in tasks if person.can_perform_task(t, preference.weight)]
 
         if not tasks:
             return
+        # Sort tasks by the number of people available to perform them (ascending order)
+        tasks_with_availability = []
+        for task in tasks:
+            available_people_count = sum(1 for p in self.people if p.can_perform_task(task, preference.weight))
+            tasks_with_availability.append((task, available_people_count))
+        tasks_with_availability.sort(key=lambda x: x[1])
 
-        # Sort tasks based on remaining capacity difference or lower weight if max weight is reached
-        if person.current_weight >= person.max_weight:
-            tasks = [Task(AbstractTask("Dev", 0.0, location="Away"), day.date)] if person.can_perform_task(Task(AbstractTask("Dev", 0.0, location="Away"), day.date), preference.weight) else []
-        else:
-            tasks.sort(key=lambda t: abs(person.max_weight - person.current_weight - t.weight))
-
-        if tasks:
-            task = tasks[0]
+        # Assign the task with the fewest available people
+        if tasks_with_availability:
+            task = tasks_with_availability[0][0]
             self.schedule[day.to_string()].append(self.assign_task(person, task))
-            if task in day.tasks:
-                day.tasks.remove(task)
-            if task in self.tasks_by_possibility:
-                self.tasks_by_possibility.remove(task)
+            day.tasks.remove(task)
             self.assign_required_tasks(person, task, day)
 
     def fulfill_requests(self, minimum_weight=0.0):
@@ -347,7 +355,7 @@ class Scheduler:
             if day:
                 if day.to_string() not in self.schedule:
                     self.schedule[day.to_string()] = []
-                self.handle_preference_assignment(person, preference, day, is_preference)
+                self.handle_preference_assignment(person, preference, day, is_preference, minimum_weight)
 
     def create_schedule(self) -> Dict[str, List[Tuple[Person, Task]]]:
         for person in self.people:
@@ -363,13 +371,13 @@ class Scheduler:
             self.schedule = {}
             self.people = copy.deepcopy(starting_people)
             self.days = copy.deepcopy(starting_days)
+            self.tasks_by_possibility = get_tasks_sorted_by_performability(self.days, self.people)
 
             # Fulfill preferences
             self.fulfill_requests(minimum_weight=request_weight)
 
             # Assign remaining tasks
-            random.shuffle(self.days)
-            self.tasks_by_possibility = get_tasks_sorted_by_performability(self.days, self.people)
+
             while self.tasks_by_possibility:
                 task = self.tasks_by_possibility.pop(0)
                 day = self.get_day_by_string(task.date.to_string())
@@ -433,7 +441,6 @@ class Scheduler:
 
 def main():
     # Define abstract tasks
-    vacation = AbstractTask("Vacation", weight=0.0, location="Vacation")
     pod = AbstractTask("POD", 4.5, location='UNC', requires=["HDR_AMP", "IORTTx"])
     sad = AbstractTask("SAD", 3.0, location=None)
     sad_assist = AbstractTask("SAD_Assist", 2.0, location=None)
@@ -445,8 +452,6 @@ def main():
                               requires=["SAD_Assist", "HDR_AMP", "IORTTx", "Prostate_Brachy"], location='UNC')
     hdr_amp = AbstractTask("HDR_AMP", 1.0, compatible_with=["POD", "POD_Backup"], location='UNC')
     iort_tx = AbstractTask("IORTTx", 2.0, compatible_with=["POD", "POD_Backup"], location='UNC')
-    dev = AbstractTask("Dev", 0.0, location="Away")
-    half_dev = AbstractTask("HalfDev", 0.0, location=None)
 
     # Define date instances for each day
     date_monday = DateTimeClass(2024, 8, 26)
