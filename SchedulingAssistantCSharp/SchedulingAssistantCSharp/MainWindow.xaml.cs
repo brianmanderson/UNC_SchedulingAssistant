@@ -29,7 +29,6 @@ namespace SchedulingAssistantCSharp
         {
             InitializeComponent();
             load_people();
-
         }
         public void load_people()
         {
@@ -189,6 +188,14 @@ namespace SchedulingAssistantCSharp
             {
                 Console.WriteLine(person);
             }
+        }
+
+        private void btnCreateGeneralTasks_Click(object sender, RoutedEventArgs e)
+        {
+            // Open the TaskDefinitionsWindow as a modal dialog.
+            TaskDefinitionsWindow taskDefinitionsWindow = new TaskDefinitionsWindow();
+            taskDefinitionsWindow.Owner = this;
+            taskDefinitionsWindow.ShowDialog();
         }
     }
 }

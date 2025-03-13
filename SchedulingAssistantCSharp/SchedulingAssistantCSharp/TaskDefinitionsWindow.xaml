@@ -1,0 +1,55 @@
+﻿<Window x:Class="SchedulingAssistantCSharp.TaskDefinitionsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:SchedulingAssistantCSharp"
+        mc:Ignorable="d"
+        Title="TaskDefinitionsWindow" Height="450" Width="800">
+    <Grid Margin="10">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="200"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Left Panel: ListBox for existing TaskDefinitions -->
+        <StackPanel Grid.Column="0" Grid.Row="0">
+            <ListBox x:Name="listBoxTasks" Height="300" 
+                     SelectionChanged="listBoxTasks_SelectionChanged"/>
+            <Button x:Name="btnAddNewTask" Content="Add New Task" Margin="0,10,0,0"
+                    Click="btnAddNewTask_Click"/>
+        </StackPanel>
+
+        <!-- Right Panel: Editing fields for the selected task -->
+        <StackPanel Grid.Column="1" Grid.Row="0" Margin="10,0,0,0">
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                <Label Content="Name:" Width="100"/>
+                <TextBox x:Name="textBoxName" Width="200"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                <Label Content="Weight:" Width="100"/>
+                <TextBox x:Name="textBoxWeight" Width="200"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                <Label Content="Location:" Width="100"/>
+                <TextBox x:Name="textBoxLocation" Width="200"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                <Label Content="Compatible With:" Width="100"/>
+                <TextBox x:Name="textBoxCompatibleWith" Width="200"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <Label Content="Requires:" Width="100"/>
+                <TextBox x:Name="textBoxRequires" Width="200"/>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Save Changes Button at the bottom of the right panel -->
+        <Button x:Name="btnSaveChanges" Content="Save Changes" Grid.Column="1" Grid.Row="1" 
+                HorizontalAlignment="Left" Margin="10,10,0,0" Click="btnSaveChanges_Click"/>
+    </Grid>
+</Window>

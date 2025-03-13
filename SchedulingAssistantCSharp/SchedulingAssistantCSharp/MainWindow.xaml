@@ -7,6 +7,11 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <Grid>
-        
+        <!-- Your existing UI components go here -->
+
+        <!-- Create general tasks button positioned at the bottom left -->
+        <Button x:Name="btnCreateGeneralTasks" Content="Create general tasks"
+                HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="10"
+                Click="btnCreateGeneralTasks_Click"/>
     </Grid>
 </Window>
