@@ -15,7 +15,14 @@ namespace SchedulingAssistantCSharp
     {
         private List<TaskDefinition> taskDefinitions;
         private readonly string jsonFilePath = "TaskDefinitions.json";
-
+        public class SelectableTask
+        {
+            public string Name { get; set; }
+            public bool IsSelected { get; set; }
+        }
+        private List<SelectableTask> selectableTasksCompatible = new List<SelectableTask>();
+        private List<SelectableTask> selectableTasksRequired = new List<SelectableTask>();
+        private TaskDefinition currentTaskDefinition;
         public TaskDefinitionsWindow()
         {
             InitializeComponent();
@@ -63,35 +70,71 @@ namespace SchedulingAssistantCSharp
             int index = listBoxTasks.SelectedIndex;
             if (index >= 0 && index < taskDefinitions.Count)
             {
-                var selectedTask = taskDefinitions[index];
-                textBoxName.Text = selectedTask.Name;
-                textBoxWeight.Text = selectedTask.Weight.ToString();
-                textBoxLocation.Text = selectedTask.Location;
-                textBoxCompatibleWith.Text = selectedTask.CompatibleWith != null
-                    ? string.Join(",", selectedTask.CompatibleWith)
-                    : string.Empty;
-                textBoxRequires.Text = selectedTask.Requires != null
-                    ? string.Join(",", selectedTask.Requires)
-                    : string.Empty;
+                currentTaskDefinition = taskDefinitions[index];
+
+                // Populate the text fields.
+                textBoxName.Text = currentTaskDefinition.Name;
+                textBoxWeight.Text = currentTaskDefinition.Weight.ToString();
+                textBoxLocation.Text = currentTaskDefinition.Location;
+
+                // Rebuild the selectable tasks list for "Compatible With".
+                BuildSelectableTasks();
             }
         }
+        private void BuildSelectableTasks()
+        {
+            selectableTasksCompatible.Clear();
+            selectableTasksRequired.Clear();
+            foreach (var td in taskDefinitions)
+            {
+                // Optionally, skip the current task's own name.
+                if (currentTaskDefinition != null && td.Name == currentTaskDefinition.Name)
+                    continue;
 
+                selectableTasksCompatible.Add(new SelectableTask
+                {
+                    Name = td.Name,
+                    IsSelected = currentTaskDefinition.CompatibleWith != null && currentTaskDefinition.CompatibleWith.Contains(td.Name)
+                });
+                selectableTasksRequired.Add(new SelectableTask
+                {
+                    Name = td.Name,
+                    IsSelected = currentTaskDefinition.Requires != null && currentTaskDefinition.Requires.Contains(td.Name)
+                });
+            }
+            comboBoxCompatibleWith.ItemsSource = null;
+            comboBoxCompatibleWith.ItemsSource = selectableTasksCompatible;
+            comboBoxRequires.ItemsSource = null;
+            comboBoxRequires.ItemsSource = selectableTasksRequired;
+        }
+        private void CheckBox_ChangedCompatible(object sender, RoutedEventArgs e)
+        {
+            if (currentTaskDefinition == null) return;
+
+            // Update the CompatibleWith list from selectableTasks.
+            currentTaskDefinition.CompatibleWith = selectableTasksCompatible
+                .Where(st => st.IsSelected)
+                .Select(st => st.Name)
+                .ToList();
+        }
+        private void CheckBox_ChangedRequired(object sender, RoutedEventArgs e)
+        {
+            if (currentTaskDefinition == null) return;
+
+            // Update the CompatibleWith list from selectableTasks.
+            currentTaskDefinition.Requires = selectableTasksRequired.Where(st => st.IsSelected).Select(st => st.Name).ToList();
+        }
         private void btnSaveChanges_Click(object sender, RoutedEventArgs e)
         {
-            int index = listBoxTasks.SelectedIndex;
-            if (index >= 0 && index < taskDefinitions.Count)
+            if (currentTaskDefinition != null)
             {
-                var task = taskDefinitions[index];
-                task.Name = textBoxName.Text;
+                currentTaskDefinition.Name = textBoxName.Text;
                 if (double.TryParse(textBoxWeight.Text, out double weight))
                 {
-                    task.Weight = weight;
+                    currentTaskDefinition.Weight = weight;
                 }
-                task.Location = textBoxLocation.Text;
-                task.CompatibleWith = textBoxCompatibleWith.Text.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                                                .Select(s => s.Trim()).ToList();
-                task.Requires = textBoxRequires.Text.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                                                .Select(s => s.Trim()).ToList();
+                currentTaskDefinition.Location = textBoxLocation.Text;
+                // CompatibleWith is updated via the checkboxes.
 
                 SaveTaskDefinitions();
                 RefreshTaskList();
@@ -107,6 +150,28 @@ namespace SchedulingAssistantCSharp
             SaveTaskDefinitions();
             RefreshTaskList();
             listBoxTasks.SelectedIndex = taskDefinitions.Count - 1;
+        }
+        private void btnDeleteTask_Click(object sender, RoutedEventArgs e)
+        {
+            int index = listBoxTasks.SelectedIndex;
+            if (index >= 0 && index < taskDefinitions.Count)
+            {
+                // Confirm deletion (optional)
+                if (MessageBox.Show("Delete the selected task definition?", "Confirm Delete", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+                {
+                    taskDefinitions.RemoveAt(index);
+                    SaveTaskDefinitions();
+                    RefreshTaskList();
+
+                    // Clear editing fields.
+                    textBoxName.Clear();
+                    textBoxWeight.Clear();
+                    textBoxLocation.Clear();
+                    comboBoxCompatibleWith.ItemsSource = null;
+                    comboBoxRequires.ItemsSource = null;
+                    currentTaskDefinition = null;
+                }
+            }
         }
     }
 }

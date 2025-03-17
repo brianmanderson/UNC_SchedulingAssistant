@@ -16,12 +16,16 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Left Panel: ListBox for existing TaskDefinitions -->
+        <!-- Left Panel: ListBox and buttons for Add/Delete -->
         <StackPanel Grid.Column="0" Grid.Row="0">
             <ListBox x:Name="listBoxTasks" Height="300" 
                      SelectionChanged="listBoxTasks_SelectionChanged"/>
-            <Button x:Name="btnAddNewTask" Content="Add New Task" Margin="0,10,0,0"
-                    Click="btnAddNewTask_Click"/>
+            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                <Button x:Name="btnAddNewTask" Content="Add New Task" 
+                        Click="btnAddNewTask_Click" Margin="0,0,5,0"/>
+                <Button x:Name="btnDeleteTask" Content="Delete" 
+                        Click="btnDeleteTask_Click"/>
+            </StackPanel>
         </StackPanel>
 
         <!-- Right Panel: Editing fields for the selected task -->
@@ -38,13 +42,34 @@
                 <Label Content="Location:" Width="100"/>
                 <TextBox x:Name="textBoxLocation" Width="200"/>
             </StackPanel>
+            <!-- Compatible With: now a drop-down with check-boxes -->
             <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-                <Label Content="Compatible With:" Width="100"/>
-                <TextBox x:Name="textBoxCompatibleWith" Width="200"/>
+                <Label Content="Compatible With:" Width="100" VerticalAlignment="Top"/>
+                <ComboBox x:Name="comboBoxCompatibleWith" Width="200" 
+                          StaysOpenOnEdit="True" IsEditable="False">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <CheckBox Content="{Binding Name}" 
+                                      IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                      Checked="CheckBox_ChangedCompatible"
+                                      Unchecked="CheckBox_ChangedCompatible"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
             </StackPanel>
             <StackPanel Orientation="Horizontal">
-                <Label Content="Requires:" Width="100"/>
-                <TextBox x:Name="textBoxRequires" Width="200"/>
+                <Label Content="Requires:" Width="100" VerticalAlignment="Top"/>
+                <ComboBox x:Name="comboBoxRequires" Width="200" 
+                          StaysOpenOnEdit="True" IsEditable="False">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <CheckBox Content="{Binding Name}" 
+                                      IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                      Checked="CheckBox_ChangedRequired"
+                                      Unchecked="CheckBox_ChangedRequired"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
             </StackPanel>
         </StackPanel>
 
