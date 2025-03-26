@@ -102,10 +102,6 @@ namespace SchedulingAssistantCSharp
                     IsSelected = currentTaskDefinition.Requires != null && currentTaskDefinition.Requires.Contains(td.Name)
                 });
             }
-            comboBoxCompatibleWith.ItemsSource = null;
-            comboBoxCompatibleWith.ItemsSource = selectableTasksCompatible;
-            comboBoxRequires.ItemsSource = null;
-            comboBoxRequires.ItemsSource = selectableTasksRequired;
         }
         private void CheckBox_ChangedCompatible(object sender, RoutedEventArgs e)
         {
@@ -167,8 +163,6 @@ namespace SchedulingAssistantCSharp
                     textBoxName.Clear();
                     textBoxWeight.Clear();
                     textBoxLocation.Clear();
-                    comboBoxCompatibleWith.ItemsSource = null;
-                    comboBoxRequires.ItemsSource = null;
                     currentTaskDefinition = null;
                 }
             }
