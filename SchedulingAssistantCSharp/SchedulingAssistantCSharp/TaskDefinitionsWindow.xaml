@@ -42,7 +42,7 @@
                 <Label Content="Location:" Width="100"/>
                 <TextBox x:Name="textBoxLocation" Width="200"/>
             </StackPanel>
-            <!-- Compatible With: now a drop-down with check-boxes -->
+            <!-- Compatible With and Requires -->
             <Grid Margin="10">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -54,7 +54,7 @@
                 <TextBlock Grid.Column="1" Text="Requires" FontWeight="Bold" Margin="5" />
 
                 <!-- ItemsControls with a StackPanel as ItemsPanel -->
-                <ItemsControl Grid.Column="0" ItemsSource="{Binding selectableTasksCompatible}" Margin="5,30,5,5">
+                <ItemsControl x:Name="itemsControlCompatible" Grid.Column="0" ItemsSource="{Binding CompatibleTasks}" Margin="5,30,5,5">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <StackPanel />
@@ -67,7 +67,7 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <ItemsControl Grid.Column="1" ItemsSource="{Binding selectableTasksRequired}" Margin="5,30,5,5">
+                <ItemsControl x:Name="itemsControlRequired" Grid.Column="1" ItemsSource="{Binding RequiredTasks}" Margin="5,30,5,5">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <StackPanel />

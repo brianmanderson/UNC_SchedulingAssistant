@@ -1,0 +1,101 @@
+﻿<Window x:Class="SchedulingAssistantCSharp.PersonnelDefinitionsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Personnel Definitions" Height="600" Width="900">
+    <Grid Margin="10">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Left Side: Role Definition -->
+        <StackPanel Grid.Column="0" Margin="10">
+            <TextBlock Text="Roles" FontWeight="Bold" FontSize="14" Margin="0,0,0,5"/>
+            <ListBox x:Name="listBoxRoles" Height="150" SelectionChanged="listBoxRoles_SelectionChanged"/>
+            <Button x:Name="btnAddNewRole" Content="Add New Role" Click="btnAddNewRole_Click" Margin="0,5,0,10"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                <Label Content="Role Name:" Width="80"/>
+                <TextBox x:Name="textBoxRoleName" Width="150" LostFocus="textBoxRoleName_LostFocus"/>
+            </StackPanel>
+            <TextBlock Text="Role Tasks:" FontWeight="Bold" Margin="0,10,0,5"/>
+            <ItemsControl x:Name="itemsControlRoleTasks">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <CheckBox Content="{Binding Name}" IsChecked="{Binding IsSelected, Mode=TwoWay}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+
+        <!-- Right Side: Person Definition -->
+        <StackPanel Grid.Column="1" Margin="10">
+            <TextBlock Text="Persons" FontWeight="Bold" FontSize="14" Margin="0,0,0,5"/>
+            <Button x:Name="btnAddPerson" Content="Add Person" Click="btnAddPerson_Click" Margin="0,0,0,10"/>
+            <ListBox x:Name="listBoxPersons" Height="150" SelectionChanged="listBoxPersons_SelectionChanged"/>
+
+            <!-- Person Editing Fields -->
+            <StackPanel Orientation="Horizontal" Margin="0,10,0,5">
+                <Label Content="Name:" Width="120"/>
+                <TextBox x:Name="textBoxPersonName" Width="150" LostFocus="textBoxPersonName_LostFocus"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                <Label Content="Weight Per Day:" Width="120"/>
+                <TextBox x:Name="textBoxWeightPerDay" Width="150" LostFocus="textBoxWeightPerDay_LostFocus"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                <Label Content="Max Weight:" Width="120"/>
+                <TextBox x:Name="textBoxMaxWeight" Width="150" IsReadOnly="True"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                <Label Content="Current Weight:" Width="120"/>
+                <TextBox x:Name="textBoxCurrentWeight" Width="150" IsReadOnly="True"/>
+            </StackPanel>
+            <TextBlock Text="Preferences:" FontWeight="Bold" Margin="0,10,0,5"/>
+            <ItemsControl x:Name="itemsControlPreferences">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <!-- For simplicity, display each preference as text -->
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Text="Avoid Preferences:" FontWeight="Bold" Margin="0,10,0,5"/>
+            <ItemsControl x:Name="itemsControlAvoidPreferences">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Text="Performable Tasks:" FontWeight="Bold" Margin="0,10,0,5"/>
+            <ItemsControl x:Name="itemsControlPerformableTasks">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <CheckBox Content="{Binding Name}" IsChecked="{Binding IsSelected, Mode=TwoWay}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Button x:Name="btnSavePerson" Content="Save Person Changes" Margin="0,10,0,0" Click="btnSavePerson_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

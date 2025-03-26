@@ -15,17 +15,24 @@ namespace SchedulingAssistantCSharp
     {
         private List<TaskDefinition> taskDefinitions;
         private readonly string jsonFilePath = "TaskDefinitions.json";
+
         public class SelectableTask
         {
             public string Name { get; set; }
             public bool IsSelected { get; set; }
         }
-        private List<SelectableTask> selectableTasksCompatible = new List<SelectableTask>();
-        private List<SelectableTask> selectableTasksRequired = new List<SelectableTask>();
+
+        // Exposed as public so that the ItemsControls can bind to them.
+        public List<SelectableTask> CompatibleTasks { get; set; } = new List<SelectableTask>();
+        public List<SelectableTask> RequiredTasks { get; set; } = new List<SelectableTask>();
+
         private TaskDefinition currentTaskDefinition;
+
         public TaskDefinitionsWindow()
         {
             InitializeComponent();
+            // Set DataContext for binding.
+            this.DataContext = this;
             LoadTaskDefinitions();
             RefreshTaskList();
         }
@@ -77,49 +84,62 @@ namespace SchedulingAssistantCSharp
                 textBoxWeight.Text = currentTaskDefinition.Weight.ToString();
                 textBoxLocation.Text = currentTaskDefinition.Location;
 
-                // Rebuild the selectable tasks list for "Compatible With".
+                // Build the selectable tasks lists for Compatible With and Requires.
                 BuildSelectableTasks();
             }
         }
+
         private void BuildSelectableTasks()
         {
-            selectableTasksCompatible.Clear();
-            selectableTasksRequired.Clear();
+            CompatibleTasks.Clear();
+            RequiredTasks.Clear();
+
             foreach (var td in taskDefinitions)
             {
-                // Optionally, skip the current task's own name.
+                // Optionally, skip the current task.
                 if (currentTaskDefinition != null && td.Name == currentTaskDefinition.Name)
                     continue;
 
-                selectableTasksCompatible.Add(new SelectableTask
+                CompatibleTasks.Add(new SelectableTask
                 {
                     Name = td.Name,
                     IsSelected = currentTaskDefinition.CompatibleWith != null && currentTaskDefinition.CompatibleWith.Contains(td.Name)
                 });
-                selectableTasksRequired.Add(new SelectableTask
+                RequiredTasks.Add(new SelectableTask
                 {
                     Name = td.Name,
                     IsSelected = currentTaskDefinition.Requires != null && currentTaskDefinition.Requires.Contains(td.Name)
                 });
             }
+
+            // Refresh the ItemsControl bindings.
+            itemsControlCompatible.ItemsSource = null;
+            itemsControlCompatible.ItemsSource = CompatibleTasks;
+            itemsControlRequired.ItemsSource = null;
+            itemsControlRequired.ItemsSource = RequiredTasks;
         }
+
+        // (Optional) These event handlers can be used if you wish to update on each checkbox change.
         private void CheckBox_ChangedCompatible(object sender, RoutedEventArgs e)
         {
             if (currentTaskDefinition == null) return;
 
-            // Update the CompatibleWith list from selectableTasks.
-            currentTaskDefinition.CompatibleWith = selectableTasksCompatible
+            currentTaskDefinition.CompatibleWith = CompatibleTasks
                 .Where(st => st.IsSelected)
                 .Select(st => st.Name)
                 .ToList();
         }
+
         private void CheckBox_ChangedRequired(object sender, RoutedEventArgs e)
         {
             if (currentTaskDefinition == null) return;
 
-            // Update the CompatibleWith list from selectableTasks.
-            currentTaskDefinition.Requires = selectableTasksRequired.Where(st => st.IsSelected).Select(st => st.Name).ToList();
+            currentTaskDefinition.Requires = RequiredTasks
+                .Where(st => st.IsSelected)
+                .Select(st => st.Name)
+                .ToList();
         }
+
         private void btnSaveChanges_Click(object sender, RoutedEventArgs e)
         {
             if (currentTaskDefinition != null)
@@ -130,7 +150,10 @@ namespace SchedulingAssistantCSharp
                     currentTaskDefinition.Weight = weight;
                 }
                 currentTaskDefinition.Location = textBoxLocation.Text;
-                // CompatibleWith is updated via the checkboxes.
+
+                // Update the CompatibleWith and Requires lists based on the checkbox selections.
+                currentTaskDefinition.CompatibleWith = CompatibleTasks.Where(st => st.IsSelected).Select(st => st.Name).ToList();
+                currentTaskDefinition.Requires = RequiredTasks.Where(st => st.IsSelected).Select(st => st.Name).ToList();
 
                 SaveTaskDefinitions();
                 RefreshTaskList();

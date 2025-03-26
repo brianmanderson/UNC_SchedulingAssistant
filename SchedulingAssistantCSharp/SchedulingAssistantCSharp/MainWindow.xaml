@@ -11,7 +11,10 @@
 
         <!-- Create general tasks button positioned at the bottom left -->
         <Button x:Name="btnCreateGeneralTasks" Content="Create general tasks"
-                HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="10"
+                HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="10,0,0,106"
                 Click="btnCreateGeneralTasks_Click"/>
+        <Button x:Name="btnCreatePersonnel" Content="Create Personnel"
+                HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="19,0,0,40"
+                Click="btnCreatePersonnel_Click"/>
     </Grid>
 </Window>

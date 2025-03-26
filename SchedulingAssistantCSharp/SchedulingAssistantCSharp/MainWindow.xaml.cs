@@ -197,5 +197,12 @@ namespace SchedulingAssistantCSharp
             taskDefinitionsWindow.Owner = this;
             taskDefinitionsWindow.ShowDialog();
         }
+
+        private void btnCreatePersonnel_Click(object sender, RoutedEventArgs e)
+        {
+            PersonnelDefinitionsWindow personnelDefinitionsWindow = new PersonnelDefinitionsWindow();
+            personnelDefinitionsWindow.Owner = this;
+            personnelDefinitionsWindow.ShowDialog();
+        }
     }
 }
