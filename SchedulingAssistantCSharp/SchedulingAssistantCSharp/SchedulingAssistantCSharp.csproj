@@ -61,6 +61,9 @@
     <Compile Include="PersonnelDefinitionsWindow.xaml.cs">
       <DependentUpon>PersonnelDefinitionsWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="RoleDefinitionsWindow.xaml.cs">
+      <DependentUpon>RoleDefinitionsWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="SchedulerClasses.cs" />
     <Compile Include="TaskDefinitionsWindow.xaml.cs">
       <DependentUpon>TaskDefinitionsWindow.xaml</DependentUpon>
@@ -78,6 +81,10 @@
       <SubType>Code</SubType>
     </Compile>
     <Page Include="PersonnelDefinitionsWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="RoleDefinitionsWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

@@ -72,6 +72,18 @@ namespace SchedulingAssistantCSharp
     }
 
     // Represents a person who can be assigned tasks.
+
+    public class Role
+    {
+        public string Name { get; set; }
+        public List<TaskDefinition> Tasks { get; set; }
+        public Role(string name)
+        {
+            Name = name;
+            Tasks = new List<TaskDefinition>();
+        }
+        public override string ToString() => Name;
+    }
     public class Person
     {
         public string Name { get; set; }

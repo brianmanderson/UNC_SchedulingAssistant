@@ -1,54 +1,35 @@
 ﻿using Newtonsoft.Json;
-using System.IO;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 
 namespace SchedulingAssistantCSharp
 {
-    /// <summary>
-    /// Interaction logic for PersonnelDefinitionsWindow.xaml
-    /// </summary>
-    /// 
     public partial class PersonnelDefinitionsWindow : Window
     {
-        // Lists for Roles and Persons.
-        public class Role
-        {
-            public string Name { get; set; }
-            public List<TaskDefinition> Tasks { get; set; }
-            public Role(string name)
-            {
-                Name = name;
-                Tasks = new List<TaskDefinition>();
-            }
-            public override string ToString()
-            {
-                return Name;
-            }
-        }
-        private List<Role> roles = new List<Role>();
+        // Person-related models and lists.
         private List<Person> persons = new List<Person>();
-
         // Global list of TaskDefinitions loaded from JSON.
         private List<TaskDefinition> allTaskDefinitions = new List<TaskDefinition>();
-
-        // For binding Role tasks as selectable items.
-        private List<SelectableTask> selectableRoleTasks = new List<SelectableTask>();
-
         // For binding Person performable tasks.
         private List<SelectableTask> selectablePersonTasks = new List<SelectableTask>();
 
-        private Role currentRole;
         private Person currentPerson;
-        private readonly string jsonFilePath = "TaskDefinitions.json";
+        private readonly string taskjsonFilePath = "TaskDefinitions.json";
+        private readonly string peoplejsonFilePath = "PeopleDefinitions.json";
+        private readonly string rolesjsonFilePath = "RolesDefinitions.json";
 
+        // List of available roles provided externally.
+        private List<Role> availableRoles = new List<Role>();
+
+        // Loads tasks from JSON.
         private void LoadTaskDefinitions()
         {
-            if (File.Exists(jsonFilePath))
+            if (File.Exists(taskjsonFilePath))
             {
-                string json = File.ReadAllText(jsonFilePath);
+                string json = File.ReadAllText(taskjsonFilePath);
                 allTaskDefinitions = JsonConvert.DeserializeObject<List<TaskDefinition>>(json)
                                   ?? new List<TaskDefinition>();
             }
@@ -57,94 +38,69 @@ namespace SchedulingAssistantCSharp
                 allTaskDefinitions = new List<TaskDefinition>();
             }
         }
+        private void LoadRoleDefinitions()
+        {
+            if (File.Exists(rolesjsonFilePath))
+            {
+                string json = File.ReadAllText(rolesjsonFilePath);
+                availableRoles = JsonConvert.DeserializeObject<List<Role>>(json)
+                                  ?? new List<Role>();
+            }
+            else
+            {
+                availableRoles = new List<Role>();
+            }
+            SetAvailableRoles(availableRoles);
+        }
 
+        private void LoadPeopleDefinitions()
+        {
+            if (File.Exists(peoplejsonFilePath))
+            {
+                string json = File.ReadAllText(peoplejsonFilePath);
+                persons = JsonConvert.DeserializeObject<List<Person>>(json)
+                                  ?? new List<Person>();
+            }
+            else
+            {
+                persons = new List<Person>();
+            }
+        }
+
+        private void SavePeopleDefinitions()
+        {
+            string json = JsonConvert.SerializeObject(persons, Formatting.Indented);
+            File.WriteAllText(peoplejsonFilePath, json);
+        }
         public PersonnelDefinitionsWindow()
         {
             InitializeComponent();
             LoadTaskDefinitions();
-            RefreshRolesList();
+            LoadRoleDefinitions();
+            LoadPeopleDefinitions();
+            // (Assume availableRoles is set from an external source.)
+            // For demo purposes, if no roles are set, create a default one.
+            comboBoxRoles.ItemsSource = availableRoles;
             RefreshPersonsList();
         }
 
-        #region Role Section
-
-        private void btnAddNewRole_Click(object sender, RoutedEventArgs e)
+        // Option for external code to provide the list of roles.
+        public void SetAvailableRoles(List<Role> roles)
         {
-            // Create a new Role and prepopulate its Tasks with a clone of every available task.
-            Role newRole = new Role("New Role");
-            newRole.Tasks = allTaskDefinitions
-                .Select(t => new TaskDefinition(t.Name, t.Weight, t.Location, new List<string>(t.CompatibleWith), new List<string>(t.Requires)))
-                .ToList();
-            roles.Add(newRole);
-            RefreshRolesList();
-            listBoxRoles.SelectedItem = newRole;
+            availableRoles = roles;
+            comboBoxRoles.ItemsSource = availableRoles;
         }
-
-        private void listBoxRoles_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (listBoxRoles.SelectedItem is Role selectedRole)
-            {
-                currentRole = selectedRole;
-                textBoxRoleName.Text = currentRole.Name;
-                BuildSelectableRoleTasks();
-            }
-        }
-
-        private void BuildSelectableRoleTasks()
-        {
-            selectableRoleTasks.Clear();
-            foreach (var task in allTaskDefinitions)
-            {
-                selectableRoleTasks.Add(new SelectableTask
-                {
-                    Name = task.Name,
-                    IsSelected = currentRole.Tasks.Any(t => t.Name == task.Name)
-                });
-            }
-            itemsControlRoleTasks.ItemsSource = null;
-            itemsControlRoleTasks.ItemsSource = selectableRoleTasks;
-        }
-
-        private void textBoxRoleName_LostFocus(object sender, RoutedEventArgs e)
-        {
-            if (currentRole != null)
-            {
-                currentRole.Name = textBoxRoleName.Text;
-                RefreshRolesList();
-            }
-        }
-
-        // Update the current Role's Tasks based on checkbox selections.
-        private void UpdateCurrentRoleTasks()
-        {
-            if (currentRole != null)
-            {
-                currentRole.Tasks = selectableRoleTasks
-                    .Where(st => st.IsSelected)
-                    .Select(st =>
-                    {
-                        var baseTask = allTaskDefinitions.FirstOrDefault(t => t.Name == st.Name);
-                        return new TaskDefinition(st.Name, baseTask?.Weight ?? 0.0, baseTask?.Location, baseTask?.CompatibleWith, baseTask?.Requires);
-                    })
-                    .ToList();
-            }
-        }
-
-        #endregion
-
-        #region Person Section
 
         private void btnAddPerson_Click(object sender, RoutedEventArgs e)
         {
-            if (currentRole == null)
+            var selectedRole = comboBoxRoles.SelectedItem as Role;
+            if (selectedRole == null)
             {
-                MessageBox.Show("Please select a Role first.");
+                MessageBox.Show("Please select a Role from the drop-down.");
                 return;
             }
-            // Ensure the Role's tasks are up-to-date.
-            UpdateCurrentRoleTasks();
-            // Create a new Person using the current Role's tasks.
-            Person newPerson = new Person("New Person", 0.0, null, null, currentRole.Tasks);
+            // Create a new Person using the selected Role's tasks.
+            Person newPerson = new Person("New Person", 0.0, null, null, selectedRole.Tasks);
             persons.Add(newPerson);
             RefreshPersonsList();
             listBoxPersons.SelectedItem = newPerson;
@@ -159,7 +115,6 @@ namespace SchedulingAssistantCSharp
                 textBoxWeightPerDay.Text = currentPerson.WeightPerDay.ToString();
                 textBoxMaxWeight.Text = currentPerson.MaxWeight.ToString();
                 textBoxCurrentWeight.Text = currentPerson.CurrentWeight.ToString();
-                // Display Preferences, AvoidPreferences, and Schedule (shown simply as lists of strings).
                 itemsControlPreferences.ItemsSource = currentPerson.Preferences;
                 itemsControlAvoidPreferences.ItemsSource = currentPerson.AvoidPreferences;
                 BuildSelectablePersonTasks();
@@ -214,14 +169,7 @@ namespace SchedulingAssistantCSharp
                 RefreshPersonsList();
                 MessageBox.Show("Person changes saved.");
             }
-        }
-
-        #endregion
-
-        private void RefreshRolesList()
-        {
-            listBoxRoles.ItemsSource = null;
-            listBoxRoles.ItemsSource = roles;
+            SavePeopleDefinitions();
         }
 
         private void RefreshPersonsList()
@@ -229,13 +177,25 @@ namespace SchedulingAssistantCSharp
             listBoxPersons.ItemsSource = null;
             listBoxPersons.ItemsSource = persons;
         }
+
+        private void btnSaveAndExit_Click(object sender, RoutedEventArgs e)
+        {
+            SavePeopleDefinitions();
+            Close();
+        }
+
+        private void btnAddRoles_Click(object sender, RoutedEventArgs e)
+        {
+            RoleDefinitionsWindow roleDefinitionsWindow = new RoleDefinitionsWindow();
+            roleDefinitionsWindow.ShowDialog();
+            LoadRoleDefinitions();
+        }
+
+        private void comboBoxRoles_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+
+        }
     }
 
     // Minimal selectable task for checkbox binding.
-    public class SelectableTask
-    {
-        public string Name { get; set; }
-        public bool IsSelected { get; set; }
-        public TaskDefinition Task { get; set; }
-    }
 }

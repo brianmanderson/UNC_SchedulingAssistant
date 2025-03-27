@@ -28,6 +28,8 @@ namespace SchedulingAssistantCSharp
         public MainWindow()
         {
             InitializeComponent();
+            //RoleDefinitionsWindow roleDefinitionsWindow = new RoleDefinitionsWindow();
+            //roleDefinitionsWindow.ShowDialog();
             load_people();
         }
         public void load_people()

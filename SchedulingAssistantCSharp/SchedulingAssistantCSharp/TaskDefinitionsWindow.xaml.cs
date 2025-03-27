@@ -190,5 +190,11 @@ namespace SchedulingAssistantCSharp
                 }
             }
         }
+
+        private void btnSaveAndExit_Click(object sender, RoutedEventArgs e)
+        {
+            SaveTaskDefinitions();
+            Close();
+        }
     }
 }
