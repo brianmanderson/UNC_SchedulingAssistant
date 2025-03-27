@@ -4,6 +4,7 @@
         Title="Personnel Definitions" Height="600" Width="900">
     <Grid Margin="10">
         <StackPanel Margin="10">
+            <!-- Role selection drop-down -->
             <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                 <Label Content="Select Role:" Width="100"/>
                 <ComboBox x:Name="comboBoxRoles" Width="200" SelectionChanged="comboBoxRoles_SelectionChanged"/>
@@ -14,46 +15,17 @@
             <!-- Person Editing Fields -->
             <StackPanel Orientation="Horizontal" Margin="0,10,0,5">
                 <Label Content="Name:" Width="120"/>
-                <TextBox x:Name="textBoxPersonName" Width="150" LostFocus="textBoxPersonName_LostFocus"/>
+                <TextBox x:Name="textBoxPersonName" Width="150" TextChanged="textBoxChanged"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                 <Label Content="Weight Per Day:" Width="120"/>
-                <TextBox x:Name="textBoxWeightPerDay" Width="150" LostFocus="textBoxWeightPerDay_LostFocus"/>
+                <TextBox x:Name="textBoxWeightPerDay" Width="150" TextChanged="textBoxChanged"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-                <Label Content="Max Weight:" Width="120"/>
-                <TextBox x:Name="textBoxMaxWeight" Width="150" IsReadOnly="True"/>
+                <Label Content="Weight Per Week:" Width="120"/>
+                <TextBox x:Name="textBoxMaxWeight" Width="150" TextChanged="textBoxChanged"/>
             </StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-                <Label Content="Current Weight:" Width="120"/>
-                <TextBox x:Name="textBoxCurrentWeight" Width="150" IsReadOnly="True"/>
-            </StackPanel>
-            <TextBlock Text="Preferences:" FontWeight="Bold" Margin="0,10,0,5"/>
-            <ItemsControl x:Name="itemsControlPreferences">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <StackPanel />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding}" />
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-            <TextBlock Text="Avoid Preferences:" FontWeight="Bold" Margin="0,10,0,5"/>
-            <ItemsControl x:Name="itemsControlAvoidPreferences">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <StackPanel />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding}" />
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <!-- Expanded Performable Tasks Section -->
             <TextBlock Text="Performable Tasks:" FontWeight="Bold" Margin="0,10,0,5"/>
             <ItemsControl x:Name="itemsControlPerformableTasks">
                 <ItemsControl.ItemsPanel>
@@ -63,12 +35,14 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <CheckBox Content="{Binding Name}" IsChecked="{Binding IsSelected, Mode=TwoWay}" />
+                        <CheckBox Content="{Binding Name}" 
+                                  IsChecked="{Binding IsSelected, Mode=TwoWay}" 
+                                  Checked="PerformableTaskCheckBox_Changed" 
+                                  Unchecked="PerformableTaskCheckBox_Changed"/>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
             <Button x:Name="btnSavePerson" Content="Save Person Changes" Margin="0,10,0,0" Click="btnSavePerson_Click"/>
-            <Button x:Name="btnSaveAndExit" Content="Save and Exit" Margin="0,50,0,0" Click="btnSaveAndExit_Click"/>
         </StackPanel>
     </Grid>
 </Window>

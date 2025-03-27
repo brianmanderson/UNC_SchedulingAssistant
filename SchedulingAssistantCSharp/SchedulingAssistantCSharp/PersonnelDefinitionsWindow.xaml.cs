@@ -9,7 +9,7 @@ namespace SchedulingAssistantCSharp
 {
     public partial class PersonnelDefinitionsWindow : Window
     {
-        // Person-related models and lists.
+        // Person-related list.
         private List<Person> persons = new List<Person>();
         // Global list of TaskDefinitions loaded from JSON.
         private List<TaskDefinition> allTaskDefinitions = new List<TaskDefinition>();
@@ -50,7 +50,8 @@ namespace SchedulingAssistantCSharp
             {
                 availableRoles = new List<Role>();
             }
-            SetAvailableRoles(availableRoles);
+            comboBoxRoles.ItemsSource = null;
+            comboBoxRoles.ItemsSource = availableRoles;
         }
 
         private void LoadPeopleDefinitions()
@@ -81,15 +82,10 @@ namespace SchedulingAssistantCSharp
             // (Assume availableRoles is set from an external source.)
             // For demo purposes, if no roles are set, create a default one.
             comboBoxRoles.ItemsSource = availableRoles;
+            listBoxPersons.DisplayMemberPath = "Name";
             RefreshPersonsList();
         }
 
-        // Option for external code to provide the list of roles.
-        public void SetAvailableRoles(List<Role> roles)
-        {
-            availableRoles = roles;
-            comboBoxRoles.ItemsSource = availableRoles;
-        }
 
         private void btnAddPerson_Click(object sender, RoutedEventArgs e)
         {
@@ -115,8 +111,6 @@ namespace SchedulingAssistantCSharp
                 textBoxWeightPerDay.Text = currentPerson.WeightPerDay.ToString();
                 textBoxMaxWeight.Text = currentPerson.MaxWeight.ToString();
                 textBoxCurrentWeight.Text = currentPerson.CurrentWeight.ToString();
-                itemsControlPreferences.ItemsSource = currentPerson.Preferences;
-                itemsControlAvoidPreferences.ItemsSource = currentPerson.AvoidPreferences;
                 BuildSelectablePersonTasks();
             }
         }
@@ -136,7 +130,7 @@ namespace SchedulingAssistantCSharp
             itemsControlPerformableTasks.ItemsSource = selectablePersonTasks;
         }
 
-        private void textBoxPersonName_LostFocus(object sender, RoutedEventArgs e)
+        private void textBoxChanged(object sender, RoutedEventArgs e)
         {
             if (currentPerson != null)
             {
@@ -145,16 +139,8 @@ namespace SchedulingAssistantCSharp
             }
         }
 
-        private void textBoxWeightPerDay_LostFocus(object sender, RoutedEventArgs e)
-        {
-            if (currentPerson != null && double.TryParse(textBoxWeightPerDay.Text, out double weight))
-            {
-                currentPerson.WeightPerDay = weight;
-            }
-        }
-
-        // Save changes for the selected Person – update PerformableTasks from checkbox selections.
-        private void btnSavePerson_Click(object sender, RoutedEventArgs e)
+        // Event handler that fires whenever a performable task checkbox is checked or unchecked.
+        private void PerformableTaskCheckBox_Changed(object sender, RoutedEventArgs e)
         {
             if (currentPerson != null)
             {
@@ -163,13 +149,21 @@ namespace SchedulingAssistantCSharp
                     .Select(st =>
                     {
                         var baseTask = allTaskDefinitions.FirstOrDefault(t => t.Name == st.Name);
-                        return new TaskDefinition(st.Name, baseTask?.Weight ?? 0.0, baseTask?.Location, baseTask?.CompatibleWith, baseTask?.Requires);
+                        return new TaskDefinition(st.Name, baseTask?.Weight ?? 0.0, baseTask?.Location,
+                            baseTask?.CompatibleWith, baseTask?.Requires);
                     })
                     .ToList();
-                RefreshPersonsList();
-                MessageBox.Show("Person changes saved.");
             }
+        }
+
+        // Optionally still allow a manual Save button.
+        private void btnSavePerson_Click(object sender, RoutedEventArgs e)
+        {
+            // In this implementation, the Person's PerformableTasks are updated immediately as checkboxes change.
+            // You can still use this button to confirm and refresh the UI.
             SavePeopleDefinitions();
+            RefreshPersonsList();
+            MessageBox.Show("Person changes saved.");
         }
 
         private void RefreshPersonsList()
@@ -178,10 +172,9 @@ namespace SchedulingAssistantCSharp
             listBoxPersons.ItemsSource = persons;
         }
 
-        private void btnSaveAndExit_Click(object sender, RoutedEventArgs e)
+        private void comboBoxRoles_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            SavePeopleDefinitions();
-            Close();
+
         }
 
         private void btnAddRoles_Click(object sender, RoutedEventArgs e)
@@ -191,9 +184,20 @@ namespace SchedulingAssistantCSharp
             LoadRoleDefinitions();
         }
 
-        private void comboBoxRoles_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void textBoxChanged(object sender, TextChangedEventArgs e)
         {
-
+            if (currentPerson != null && double.TryParse(textBoxWeightPerDay.Text, out double weight))
+            {
+                currentPerson.WeightPerDay = weight;
+            }
+            if (currentPerson != null && double.TryParse(textBoxMaxWeight.Text, out double maxweight))
+            {
+                currentPerson.MaxWeight = maxweight;
+            }
+            if (currentPerson != null && !string.IsNullOrEmpty(textBoxPersonName.Text))
+            {
+                currentPerson.Name = textBoxPersonName.Text;
+            }
         }
     }
 

@@ -88,8 +88,8 @@ namespace SchedulingAssistantCSharp
     {
         public string Name { get; set; }
         public double WeightPerDay { get; set; }
-        public double MaxWeight { get; private set; }
-        public double CurrentWeight { get; private set; }
+        public double MaxWeight { get; set; }
+        public double CurrentWeight { get; set; }
         public List<Preference> Preferences { get; set; }
         public List<Preference> AvoidPreferences { get; set; }
         public List<ScheduledTask> Schedule { get; set; }

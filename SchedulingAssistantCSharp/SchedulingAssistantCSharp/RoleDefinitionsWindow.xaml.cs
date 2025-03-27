@@ -19,7 +19,7 @@ namespace SchedulingAssistantCSharp
         private List<Role> roles = new List<Role>();
         private Role currentRole;
         private readonly string taskjsonFilePath = "TaskDefinitions.json";
-        private readonly string rolesjsonFilePath = "RoleDefinitions.json";
+        private readonly string rolesjsonFilePath = "RolesDefinitions.json";
 
         private void LoadTaskDefinitions()
         {
