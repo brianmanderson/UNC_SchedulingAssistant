@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json;
-using System.IO;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -18,48 +16,12 @@ namespace SchedulingAssistantCSharp
         // List of roles defined here.
         private List<Role> roles = new List<Role>();
         private Role currentRole;
-        private readonly string taskjsonFilePath = "TaskDefinitions.json";
-        private readonly string rolesjsonFilePath = "RolesDefinitions.json";
-
-        private void LoadTaskDefinitions()
-        {
-            if (File.Exists(taskjsonFilePath))
-            {
-                string json = File.ReadAllText(taskjsonFilePath);
-                allTaskDefinitions = JsonConvert.DeserializeObject<List<TaskDefinition>>(json)
-                                  ?? new List<TaskDefinition>();
-            }
-            else
-            {
-                allTaskDefinitions = new List<TaskDefinition>();
-            }
-        }
-
-        private void LoadRoleDefinitions()
-        {
-            if (File.Exists(rolesjsonFilePath))
-            {
-                string json = File.ReadAllText(rolesjsonFilePath);
-                roles = JsonConvert.DeserializeObject<List<Role>>(json)
-                                  ?? new List<Role>();
-            }
-            else
-            {
-                roles = new List<Role>();
-            }
-        }
-
-        private void SaveRolesDefinitions()
-        {
-            string json = JsonConvert.SerializeObject(roles, Formatting.Indented);
-            File.WriteAllText(rolesjsonFilePath, json);
-        }
 
         public RoleDefinitionsWindow()
         {
             InitializeComponent();
-            LoadTaskDefinitions();
-            LoadRoleDefinitions();
+            SerializerDeserializerClass.LoadTaskDefinitions();
+            SerializerDeserializerClass.LoadRoleDefinitions();
             RefreshRolesList();
         }
 
@@ -123,7 +85,7 @@ namespace SchedulingAssistantCSharp
 
         private void SaveExit_Click(object sender, RoutedEventArgs e)
         {
-            SaveRolesDefinitions();
+            SerializerDeserializerClass.SaveRolesDefinitions(roles);
             Close();
         }
     }

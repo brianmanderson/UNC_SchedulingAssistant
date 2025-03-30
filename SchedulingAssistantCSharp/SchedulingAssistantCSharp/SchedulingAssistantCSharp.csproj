@@ -65,6 +65,7 @@
       <DependentUpon>RoleDefinitionsWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="SchedulerClasses.cs" />
+    <Compile Include="SerializerDeserializerClass.cs" />
     <Compile Include="TaskDefinitionsWindow.xaml.cs">
       <DependentUpon>TaskDefinitionsWindow.xaml</DependentUpon>
     </Compile>
