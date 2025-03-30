@@ -34,20 +34,20 @@ namespace SchedulingAssistantCSharp
     }
 
     // Represents a specific instance of a task scheduled for a particular date.
-    public class ScheduledTask : TaskDefinition
+    public class ScheduledTask
     {
-        public DateTime Date { get; set; }
+        public TaskDefinition Task { get; }
+        public DateTime ScheduledDate { get; set; }
 
-        public ScheduledTask(TaskDefinition taskDefinition, DateTime date)
-            : base(taskDefinition.Name, taskDefinition.Weight, taskDefinition.Location,
-                   new List<string>(taskDefinition.CompatibleWith), new List<string>(taskDefinition.Requires))
+        public ScheduledTask(TaskDefinition task, DateTime scheduledDate)
         {
-            Date = date;
+            Task = task;
+            ScheduledDate = scheduledDate;
         }
 
         public override string ToString()
         {
-            return $"{base.ToString()} on {Date.ToShortDateString()}";
+            return $"{base.ToString()} on {ScheduledDate.ToShortDateString()}";
         }
     }
 
@@ -95,6 +95,8 @@ namespace SchedulingAssistantCSharp
         public List<ScheduledTask> Schedule { get; set; }
         public List<TaskDefinition> PerformableTasks { get; set; }
 
+        private TaskDefinition _task;
+
         public Person(string name, double weightPerDay,
             List<Preference> preferences = null,
             List<Preference> avoidPreferences = null,
@@ -134,13 +136,14 @@ namespace SchedulingAssistantCSharp
         }
 
         // Checks whether the person can perform a given scheduled task.
-        public bool CanPerformTask(ScheduledTask task, double weight)
+        public bool CanPerformTask(ScheduledTask scheduled_task, double weight)
         {
+            _task = scheduled_task.Task;
             // Check avoidance preferences.
             foreach (var avoidPref in AvoidPreferences)
             {
-                if (avoidPref.Day.ToShortDateString() == task.Date.ToShortDateString() &&
-                    (task.Name == avoidPref.TaskOrLocation || task.Location == avoidPref.TaskOrLocation) &&
+                if (avoidPref.Day.ToShortDateString() == scheduled_task.ScheduledDate.ToShortDateString() &&
+                    (_task.Name == avoidPref.TaskOrLocation || _task.Location == avoidPref.TaskOrLocation) &&
                     avoidPref.Weight > weight)
                 {
                     return false;
@@ -148,27 +151,28 @@ namespace SchedulingAssistantCSharp
             }
 
             // Verify that the task is in the list of tasks this person can perform.
-            if (!PerformableTasks.Exists(t => t.Name == task.Name))
+            if (!PerformableTasks.Exists(t => t.Name == _task.Name))
                 return false;
 
             // Check for scheduling conflicts on the same day.
-            foreach (var scheduledTask in Schedule)
+            foreach (var conflict_scheduledTask in Schedule)
             {
-                if (scheduledTask.Date.ToShortDateString() == task.Date.ToShortDateString())
+                TaskDefinition task = conflict_scheduledTask.Task;
+                if (conflict_scheduledTask.ScheduledDate.ToShortDateString() == conflict_scheduledTask.ScheduledDate.ToShortDateString())
                 {
                     // Location conflict.
-                    if (!string.IsNullOrEmpty(scheduledTask.Location) &&
+                    if (!string.IsNullOrEmpty(task.Location) &&
                         !string.IsNullOrEmpty(task.Location) &&
-                        scheduledTask.Location != task.Location)
+                        scheduled_task.Task.Location != task.Location)
                         return false;
 
                     // Compatibility conflict.
-                    if (!scheduledTask.CompatibleWith.Contains(task.Name) &&
-                        !task.CompatibleWith.Contains(scheduledTask.Name))
+                    if (!_task.CompatibleWith.Contains(task.Name) &&
+                        !task.CompatibleWith.Contains(_task.Name))
                         return false;
 
                     // Avoid duplicate tasks.
-                    if (task.Name == scheduledTask.Name)
+                    if (task.Name == _task.Name)
                         return false;
                 }
             }
@@ -176,10 +180,10 @@ namespace SchedulingAssistantCSharp
         }
 
         // Assigns a scheduled task to the person.
-        public void AssignTask(ScheduledTask task)
+        public void AssignTask(ScheduledTask scheduled_task)
         {
-            Schedule.Add(task);
-            CurrentWeight += task.Weight;
+            Schedule.Add(scheduled_task);
+            CurrentWeight += scheduled_task.Task.Weight;
         }
 
         public override string ToString()
@@ -229,7 +233,7 @@ namespace SchedulingAssistantCSharp
             Name = name;
             Date = date;
             // Sort tasks by weight descending.
-            tasks.Sort((t1, t2) => t2.Weight.CompareTo(t1.Weight));
+            tasks.Sort((t1, t2) => t2.Task.Weight.CompareTo(t1.Task.Weight));
             Tasks = tasks;
         }
 
