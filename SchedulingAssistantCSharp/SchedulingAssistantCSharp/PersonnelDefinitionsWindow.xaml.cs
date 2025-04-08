@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -10,75 +11,24 @@ namespace SchedulingAssistantCSharp
     public partial class PersonnelDefinitionsWindow : Window
     {
         // Person-related list.
-        private List<Person> persons = new List<Person>();
+        private ObservableCollection<Person> persons = new ObservableCollection<Person>();
         // Global list of TaskDefinitions loaded from JSON.
-        private List<TaskDefinition> allTaskDefinitions = new List<TaskDefinition>();
+        private ObservableCollection<TaskDefinition> allTaskDefinitions = new ObservableCollection<TaskDefinition>();
         // For binding Person performable tasks.
         private List<SelectableTask> selectablePersonTasks = new List<SelectableTask>();
 
         private Person currentPerson;
-        private readonly string taskjsonFilePath = "TaskDefinitions.json";
-        private readonly string peoplejsonFilePath = "PeopleDefinitions.json";
-        private readonly string rolesjsonFilePath = "RolesDefinitions.json";
 
         // List of available roles provided externally.
-        private List<Role> availableRoles = new List<Role>();
+        private ObservableCollection<Role> availableRoles = new ObservableCollection<Role>();
 
         // Loads tasks from JSON.
-        private void LoadTaskDefinitions()
-        {
-            if (File.Exists(taskjsonFilePath))
-            {
-                string json = File.ReadAllText(taskjsonFilePath);
-                allTaskDefinitions = JsonConvert.DeserializeObject<List<TaskDefinition>>(json)
-                                  ?? new List<TaskDefinition>();
-            }
-            else
-            {
-                allTaskDefinitions = new List<TaskDefinition>();
-            }
-        }
-        private void LoadRoleDefinitions()
-        {
-            if (File.Exists(rolesjsonFilePath))
-            {
-                string json = File.ReadAllText(rolesjsonFilePath);
-                availableRoles = JsonConvert.DeserializeObject<List<Role>>(json)
-                                  ?? new List<Role>();
-            }
-            else
-            {
-                availableRoles = new List<Role>();
-            }
-            comboBoxRoles.ItemsSource = null;
-            comboBoxRoles.ItemsSource = availableRoles;
-        }
-
-        private void LoadPeopleDefinitions()
-        {
-            if (File.Exists(peoplejsonFilePath))
-            {
-                string json = File.ReadAllText(peoplejsonFilePath);
-                persons = JsonConvert.DeserializeObject<List<Person>>(json)
-                                  ?? new List<Person>();
-            }
-            else
-            {
-                persons = new List<Person>();
-            }
-        }
-
-        private void SavePeopleDefinitions()
-        {
-            string json = JsonConvert.SerializeObject(persons, Formatting.Indented);
-            File.WriteAllText(peoplejsonFilePath, json);
-        }
         public PersonnelDefinitionsWindow()
         {
             InitializeComponent();
-            LoadTaskDefinitions();
-            LoadRoleDefinitions();
-            LoadPeopleDefinitions();
+            allTaskDefinitions = SerializerDeserializerClass.LoadTaskDefinitions();
+            availableRoles = SerializerDeserializerClass.LoadRoleDefinitions();
+            persons = SerializerDeserializerClass.LoadPeopleDefinitions();
             // (Assume availableRoles is set from an external source.)
             // For demo purposes, if no roles are set, create a default one.
             comboBoxRoles.ItemsSource = availableRoles;
@@ -110,7 +60,6 @@ namespace SchedulingAssistantCSharp
                 textBoxPersonName.Text = currentPerson.Name;
                 textBoxWeightPerDay.Text = currentPerson.WeightPerDay.ToString();
                 textBoxMaxWeight.Text = currentPerson.MaxWeight.ToString();
-                textBoxCurrentWeight.Text = currentPerson.CurrentWeight.ToString();
                 BuildSelectablePersonTasks();
             }
         }
@@ -161,7 +110,7 @@ namespace SchedulingAssistantCSharp
         {
             // In this implementation, the Person's PerformableTasks are updated immediately as checkboxes change.
             // You can still use this button to confirm and refresh the UI.
-            SavePeopleDefinitions();
+            SerializerDeserializerClass.SavePeopleDefinitions(persons);
             RefreshPersonsList();
             MessageBox.Show("Person changes saved.");
         }
@@ -181,7 +130,7 @@ namespace SchedulingAssistantCSharp
         {
             RoleDefinitionsWindow roleDefinitionsWindow = new RoleDefinitionsWindow();
             roleDefinitionsWindow.ShowDialog();
-            LoadRoleDefinitions();
+            availableRoles = SerializerDeserializerClass.LoadRoleDefinitions();
         }
 
         private void textBoxChanged(object sender, TextChangedEventArgs e)

@@ -7,8 +7,37 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="3*"/>
+            <ColumnDefinition Width="7*"/>
+        </Grid.ColumnDefinitions>
         <!-- Your existing UI components go here -->
+        <Calendar x:Name="calendarControl" Margin="10" SelectedDatesChanged="CalendarControl_SelectedDateChanged"/>
+        <StackPanel Grid.Column="1" Margin="10">
+            <!-- Header -->
+            <TextBlock Text="Scheduled Tasks" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
 
+            <!-- Add Task Controls: ComboBox to select TaskDefinition and Add button -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,10">
+                <ComboBox x:Name="comboBoxTaskDefinitions" Width="200" DisplayMemberPath="Name" />
+                <Button x:Name="btnAddTask" Content="Add Task" Click="btnAddTask_Click" Margin="5,0,0,0"/>
+            </StackPanel>
+
+            <!-- List of Scheduled Tasks with a Delete button for each -->
+            <ListBox x:Name="listBoxScheduledTasks" Height="325">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <!-- Show the task name and formatted date -->
+                            <TextBlock Text="{Binding Task.Name}" Width="200"/>
+                            <TextBlock Text="{Binding ScheduledDate, StringFormat=' - {0:MM/dd/yyyy}'}" Margin="10,0,0,0"/>
+                            <!-- Delete button that passes the ScheduledTask object via its Tag property -->
+                            <Button Content="Delete" Margin="10,0,0,0" Click="DeleteTaskButton_Click" Tag="{Binding}"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </StackPanel>
         <!-- Create general tasks button positioned at the bottom left -->
         <Button x:Name="btnCreateGeneralTasks" Content="Create general tasks"
                 HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="10,0,0,106"

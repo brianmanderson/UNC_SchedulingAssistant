@@ -23,30 +23,75 @@ namespace SchedulingAssistantCSharp
     /// </summary>
     public partial class MainWindow : Window
     {
-        public string json_people_path = @"people.json";
+        
         ObservableCollection<Person> people = new ObservableCollection<Person>();
+        private List<ScheduledTask> allScheduledTasks = new List<ScheduledTask>();
+
+        // Collection of available task definitions.
+        private ObservableCollection<TaskDefinition> availableTaskDefinitions = new ObservableCollection<TaskDefinition>();
+
         public MainWindow()
         {
             InitializeComponent();
             //RoleDefinitionsWindow roleDefinitionsWindow = new RoleDefinitionsWindow();
             //roleDefinitionsWindow.ShowDialog();
-            load_people();
-        }
-        public void load_people()
-        {
-            if (File.Exists(json_people_path))
+            availableTaskDefinitions = SerializerDeserializerClass.LoadTaskDefinitions();
+            people = SerializerDeserializerClass.LoadPeopleDefinitions();
+            if (people.Count == 0)
             {
-                var settings = new JsonSerializerSettings
-                {
-                    TypeNameHandling = TypeNameHandling.All,
-                    Formatting = Formatting.Indented
-                };
-                string json = File.ReadAllText(json_people_path);
-                people = JsonConvert.DeserializeObject<ObservableCollection<Person>>(json, settings);
+                create_people();
+            }
+            // Optionally, set the calendar to today's date.
+            calendarControl.SelectedDate = DateTime.Today;
+            comboBoxTaskDefinitions.ItemsSource = availableTaskDefinitions;
+        }
+        private void CalendarControl_SelectedDateChanged(object sender, SelectionChangedEventArgs e)
+        {
+            UpdateScheduledTasksForSelectedDate();
+        }
+        private void UpdateScheduledTasksForSelectedDate()
+        {
+            if (calendarControl.SelectedDate.HasValue)
+            {
+                DateTime selectedDate = calendarControl.SelectedDate.Value.Date;
+                var tasksForDay = allScheduledTasks.Where(t => t.ScheduledDate.Date == selectedDate).ToList();
+                listBoxScheduledTasks.ItemsSource = tasksForDay;
             }
             else
             {
-                create_people();
+                listBoxScheduledTasks.ItemsSource = null;
+            }
+        }
+        private void btnAddTask_Click(object sender, RoutedEventArgs e)
+        {
+            if (!calendarControl.SelectedDate.HasValue)
+            {
+                MessageBox.Show("Please select a date first.");
+                return;
+            }
+
+            // Ensure a TaskDefinition is selected.
+            if (comboBoxTaskDefinitions.SelectedIndex == -1)
+            {
+                MessageBox.Show("Please select a Task Definition from the list.");
+                return;
+            }
+            TaskDefinition selectedTaskDef = (TaskDefinition)comboBoxTaskDefinitions.SelectedItem;
+            DateTime selectedDate = calendarControl.SelectedDate.Value.Date;
+
+            // Create a new ScheduledTask using a decorator pattern.
+            ScheduledTask newScheduledTask = new ScheduledTask(selectedTaskDef, selectedDate);
+            allScheduledTasks.Add(newScheduledTask);
+
+            // Refresh the ListBox.
+            UpdateScheduledTasksForSelectedDate();
+        }
+        private void DeleteTaskButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button deleteButton && deleteButton.Tag is ScheduledTask scheduledTask)
+            {
+                allScheduledTasks.Remove(scheduledTask);
+                UpdateScheduledTasksForSelectedDate();
             }
         }
         public void create_people()
@@ -184,7 +229,7 @@ namespace SchedulingAssistantCSharp
                 Formatting = Formatting.Indented
             };
             string jsonString = JsonConvert.SerializeObject(people, settings);
-            File.WriteAllText(json_people_path, jsonString);
+            SerializerDeserializerClass.SavePeopleDefinitions(people);
             // Optionally, iterate over people and print their details.
             foreach (var person in people)
             {

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -12,16 +13,16 @@ namespace SchedulingAssistantCSharp
         // For binding role tasks.
         private List<SelectableTask> selectableRoleTasks = new List<SelectableTask>();
         // Global list of TaskDefinitions loaded from JSON.
-        private List<TaskDefinition> allTaskDefinitions = new List<TaskDefinition>();
+        private ObservableCollection<TaskDefinition> allTaskDefinitions = new ObservableCollection<TaskDefinition>();
         // List of roles defined here.
-        private List<Role> roles = new List<Role>();
+        private ObservableCollection<Role> roles = new ObservableCollection<Role>();
         private Role currentRole;
 
         public RoleDefinitionsWindow()
         {
             InitializeComponent();
-            SerializerDeserializerClass.LoadTaskDefinitions();
-            SerializerDeserializerClass.LoadRoleDefinitions();
+            allTaskDefinitions = SerializerDeserializerClass.LoadTaskDefinitions();
+            roles = SerializerDeserializerClass.LoadRoleDefinitions();
             RefreshRolesList();
         }
 

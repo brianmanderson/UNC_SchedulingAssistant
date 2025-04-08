@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -13,8 +14,7 @@ namespace SchedulingAssistantCSharp
     /// </summary>
     public partial class TaskDefinitionsWindow : Window
     {
-        private List<TaskDefinition> taskDefinitions;
-        private readonly string jsonFilePath = "TaskDefinitions.json";
+        private ObservableCollection<TaskDefinition> taskDefinitions;
 
         public class SelectableTask
         {
@@ -33,36 +33,9 @@ namespace SchedulingAssistantCSharp
             InitializeComponent();
             // Set DataContext for binding.
             this.DataContext = this;
-            LoadTaskDefinitions();
+            taskDefinitions = SerializerDeserializerClass.LoadTaskDefinitions();
             RefreshTaskList();
         }
-
-        /// <summary>
-        /// Loads task definitions from the JSON file.
-        /// </summary>
-        private void LoadTaskDefinitions()
-        {
-            if (File.Exists(jsonFilePath))
-            {
-                string json = File.ReadAllText(jsonFilePath);
-                taskDefinitions = JsonConvert.DeserializeObject<List<TaskDefinition>>(json)
-                                  ?? new List<TaskDefinition>();
-            }
-            else
-            {
-                taskDefinitions = new List<TaskDefinition>();
-            }
-        }
-
-        /// <summary>
-        /// Saves the current task definitions to the JSON file.
-        /// </summary>
-        private void SaveTaskDefinitions()
-        {
-            string json = JsonConvert.SerializeObject(taskDefinitions, Formatting.Indented);
-            File.WriteAllText(jsonFilePath, json);
-        }
-
         /// <summary>
         /// Refreshes the ListBox display.
         /// </summary>
@@ -155,7 +128,7 @@ namespace SchedulingAssistantCSharp
                 currentTaskDefinition.CompatibleWith = CompatibleTasks.Where(st => st.IsSelected).Select(st => st.Name).ToList();
                 currentTaskDefinition.Requires = RequiredTasks.Where(st => st.IsSelected).Select(st => st.Name).ToList();
 
-                SaveTaskDefinitions();
+                SerializerDeserializerClass.SaveTaskDefinitions(taskDefinitions);
                 RefreshTaskList();
             }
         }
@@ -166,7 +139,7 @@ namespace SchedulingAssistantCSharp
             TaskDefinition newTask = new TaskDefinition("New Task", 0.0, "DefaultLocation", new List<string>(), new List<string>());
 
             taskDefinitions.Add(newTask);
-            SaveTaskDefinitions();
+            SerializerDeserializerClass.SaveTaskDefinitions(taskDefinitions);
             RefreshTaskList();
             listBoxTasks.SelectedIndex = taskDefinitions.Count - 1;
         }
@@ -179,7 +152,7 @@ namespace SchedulingAssistantCSharp
                 if (MessageBox.Show("Delete the selected task definition?", "Confirm Delete", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
                 {
                     taskDefinitions.RemoveAt(index);
-                    SaveTaskDefinitions();
+                    SerializerDeserializerClass.SaveTaskDefinitions(taskDefinitions);
                     RefreshTaskList();
 
                     // Clear editing fields.
@@ -193,7 +166,7 @@ namespace SchedulingAssistantCSharp
 
         private void btnSaveAndExit_Click(object sender, RoutedEventArgs e)
         {
-            SaveTaskDefinitions();
+            SerializerDeserializerClass.SaveTaskDefinitions(taskDefinitions);
             Close();
         }
     }
