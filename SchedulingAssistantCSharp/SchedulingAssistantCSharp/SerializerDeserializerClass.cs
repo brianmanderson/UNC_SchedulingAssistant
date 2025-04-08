@@ -10,11 +10,32 @@ namespace SchedulingAssistantCSharp
     {
         public static readonly string TaskJsonFilePath = "TaskDefinitions.json";
         public static readonly string RolesJsonFilePath = "RolesDefinitions.json";
-        public static readonly string PeopleJsonFilePath = @"people.json";
+        public static readonly string PeopleJsonFilePath = @"PeopleDefinitions.json";
+        public static readonly string ScheduleJsonFilePath = @"ScheduledTasks.json";
         // Add more file paths as needed.
     }
     public static class SerializerDeserializerClass
     {
+        public static ObservableCollection<ScheduledTask> LoadSchedule()
+        {
+            ObservableCollection<ScheduledTask> new_schedule = new ObservableCollection<ScheduledTask>();
+            if (File.Exists(DataPaths.ScheduleJsonFilePath))
+            {
+                var settings = new JsonSerializerSettings
+                {
+                    TypeNameHandling = TypeNameHandling.All,
+                    Formatting = Formatting.Indented
+                };
+                string json = File.ReadAllText(DataPaths.ScheduleJsonFilePath);
+                new_schedule = JsonConvert.DeserializeObject<ObservableCollection<ScheduledTask>>(json, settings);
+            }
+            return new_schedule;
+        }
+        public static void SaveSchedule(ObservableCollection<ScheduledTask> schedule)
+        {
+            string json = JsonConvert.SerializeObject(schedule, Formatting.Indented);
+            File.WriteAllText(DataPaths.ScheduleJsonFilePath, json);
+        }
         public static ObservableCollection<Person> LoadPeopleDefinitions()
         {
             ObservableCollection<Person> new_people = new ObservableCollection<Person>();

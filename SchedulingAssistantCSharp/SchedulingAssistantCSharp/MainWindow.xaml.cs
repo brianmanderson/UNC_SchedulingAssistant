@@ -25,7 +25,7 @@ namespace SchedulingAssistantCSharp
     {
         
         ObservableCollection<Person> people = new ObservableCollection<Person>();
-        private List<ScheduledTask> allScheduledTasks = new List<ScheduledTask>();
+        private ObservableCollection<ScheduledTask> allScheduledTasks = new ObservableCollection<ScheduledTask>();
 
         // Collection of available task definitions.
         private ObservableCollection<TaskDefinition> availableTaskDefinitions = new ObservableCollection<TaskDefinition>();
@@ -35,6 +35,7 @@ namespace SchedulingAssistantCSharp
             InitializeComponent();
             //RoleDefinitionsWindow roleDefinitionsWindow = new RoleDefinitionsWindow();
             //roleDefinitionsWindow.ShowDialog();
+            allScheduledTasks = SerializerDeserializerClass.LoadSchedule();
             availableTaskDefinitions = SerializerDeserializerClass.LoadTaskDefinitions();
             people = SerializerDeserializerClass.LoadPeopleDefinitions();
             if (people.Count == 0)
@@ -44,6 +45,7 @@ namespace SchedulingAssistantCSharp
             // Optionally, set the calendar to today's date.
             calendarControl.SelectedDate = DateTime.Today;
             comboBoxTaskDefinitions.ItemsSource = availableTaskDefinitions;
+            UpdateScheduledTasksForSelectedDate();
         }
         private void CalendarControl_SelectedDateChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -250,6 +252,11 @@ namespace SchedulingAssistantCSharp
             PersonnelDefinitionsWindow personnelDefinitionsWindow = new PersonnelDefinitionsWindow();
             personnelDefinitionsWindow.Owner = this;
             personnelDefinitionsWindow.ShowDialog();
+        }
+
+        private void btnSaveSchedule_Click(object sender, RoutedEventArgs e)
+        {
+            SerializerDeserializerClass.SaveSchedule(allScheduledTasks);
         }
     }
 }

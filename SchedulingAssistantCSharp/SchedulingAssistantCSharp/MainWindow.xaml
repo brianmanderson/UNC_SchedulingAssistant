@@ -45,5 +45,8 @@
         <Button x:Name="btnCreatePersonnel" Content="Create Personnel"
                 HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="19,0,0,40"
                 Click="btnCreatePersonnel_Click"/>
+        <Button x:Name="btnSaveSchedule" Content="Save Schedule"
+            HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,238,0,0"
+            Click="btnSaveSchedule_Click"/>
     </Grid>
 </Window>
