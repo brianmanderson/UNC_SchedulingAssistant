@@ -64,6 +64,7 @@ namespace SchedulingAssistantCSharp
             // Optionally, set the calendar to today's date.
             calendarControl.SelectedDate = DateTime.Today;
             comboBoxTaskDefinitions.ItemsSource = availableTaskDefinitions;
+            comboBoxTaskGroups.ItemsSource = allTaskGroups;
             UpdateScheduledTasksForSelectedDate();
         }
         private void CalendarControl_SelectedDateChanged(object sender, SelectionChangedEventArgs e)
@@ -280,12 +281,36 @@ namespace SchedulingAssistantCSharp
 
         private void btnAddTaskGroup_Click(object sender, RoutedEventArgs e)
         {
+            if (!calendarControl.SelectedDate.HasValue)
+            {
+                MessageBox.Show("Please select a date first.");
+                return;
+            }
 
+            // Ensure a TaskDefinition is selected.
+            if (comboBoxTaskGroups.SelectedIndex == -1)
+            {
+                MessageBox.Show("Please select a Task Group from the list.");
+                return;
+            }
+            TaskGroup selectedTaskGroup = (TaskGroup)comboBoxTaskGroups.SelectedItem;
+            DateTime selectedDate = calendarControl.SelectedDate.Value.Date;
+
+            // Create a new ScheduledTask using a decorator pattern.
+            foreach (TaskDefinition taskDefinition in selectedTaskGroup.Tasks)
+            {
+                ScheduledTask newScheduledTask = new ScheduledTask(taskDefinition, selectedDate);
+                allScheduledTasks.Add(newScheduledTask);
+            }
+            // Refresh the ListBox.
+            UpdateScheduledTasksForSelectedDate();
         }
 
         private void btnCreateTaskGroup_Click(object sender, RoutedEventArgs e)
         {
-
+            TaskGroupsWindow taskGroupsWindow = new TaskGroupsWindow();
+            taskGroupsWindow.ShowDialog();
+            allTaskGroups = SerializerDeserializerClass.LoadTaskGroups();
         }
     }
 }

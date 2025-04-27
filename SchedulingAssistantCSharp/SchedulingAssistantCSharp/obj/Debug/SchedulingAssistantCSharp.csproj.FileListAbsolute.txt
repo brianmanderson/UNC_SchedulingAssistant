@@ -22,3 +22,5 @@ C:\Users\Markb\Modular_Projects\UNC_SchedulingAssistant\SchedulingAssistantCShar
 C:\Users\Markb\Modular_Projects\UNC_SchedulingAssistant\SchedulingAssistantCSharp\SchedulingAssistantCSharp\obj\Debug\Scheduli.018D8E53.Up2Date
 C:\Users\Markb\Modular_Projects\UNC_SchedulingAssistant\SchedulingAssistantCSharp\SchedulingAssistantCSharp\obj\Debug\RoleDefinitionsWindow.baml
 C:\Users\Markb\Modular_Projects\UNC_SchedulingAssistant\SchedulingAssistantCSharp\SchedulingAssistantCSharp\obj\Debug\RoleDefinitionsWindow.g.cs
+C:\Users\Markb\Modular_Projects\UNC_SchedulingAssistant\SchedulingAssistantCSharp\SchedulingAssistantCSharp\obj\Debug\TaskGroupsWindow.baml
+C:\Users\Markb\Modular_Projects\UNC_SchedulingAssistant\SchedulingAssistantCSharp\SchedulingAssistantCSharp\obj\Debug\TaskGroupsWindow.g.cs
