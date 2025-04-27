@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Media.Media3D;
 
 namespace SchedulingAssistantCSharp
 {
@@ -30,6 +31,26 @@ namespace SchedulingAssistantCSharp
         public override string ToString()
         {
             return $"Task(name={Name}, weight={Weight}, location={Location})";
+        }
+    }
+
+    public class TaskGroup
+    {
+        public string Name { get; set; }
+        public List<TaskDefinition> Tasks { get; set; }
+
+        public TaskGroup(string name)
+        {
+            Name = name;
+            Tasks = new List<TaskDefinition>();
+        }
+        public void add_task(TaskDefinition task)
+        {
+            Tasks.Add(task);
+        }
+        public override string ToString()
+        {
+            return $"TaskGroup(name={Name}, has tasks {Tasks})";
         }
     }
 

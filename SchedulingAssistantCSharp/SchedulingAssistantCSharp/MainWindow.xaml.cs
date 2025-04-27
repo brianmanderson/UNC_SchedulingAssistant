@@ -26,7 +26,7 @@ namespace SchedulingAssistantCSharp
         
         ObservableCollection<Person> people = new ObservableCollection<Person>();
         private ObservableCollection<ScheduledTask> allScheduledTasks = new ObservableCollection<ScheduledTask>();
-
+        private ObservableCollection<TaskGroup> allTaskGroups = new ObservableCollection<TaskGroup>();
         // Collection of available task definitions.
         private ObservableCollection<TaskDefinition> availableTaskDefinitions = new ObservableCollection<TaskDefinition>();
 
@@ -38,10 +38,29 @@ namespace SchedulingAssistantCSharp
             allScheduledTasks = SerializerDeserializerClass.LoadSchedule();
             availableTaskDefinitions = SerializerDeserializerClass.LoadTaskDefinitions();
             people = SerializerDeserializerClass.LoadPeopleDefinitions();
+            allTaskGroups = SerializerDeserializerClass.LoadTaskGroups();
             if (people.Count == 0)
             {
                 create_people();
             }
+            DateTime day = DateTime.Now;
+            bool is_scheduled = false;
+            for (int i = 0; i < 10; i++) 
+            {
+                day.AddDays(i);
+                foreach (ScheduledTask task in allScheduledTasks)
+                {
+                    if (task.ScheduledDate == day)
+                    {
+                        is_scheduled = true;
+                    }
+                }
+                if (!is_scheduled)
+                {
+
+                }
+            }
+
             // Optionally, set the calendar to today's date.
             calendarControl.SelectedDate = DateTime.Today;
             comboBoxTaskDefinitions.ItemsSource = availableTaskDefinitions;
@@ -257,6 +276,16 @@ namespace SchedulingAssistantCSharp
         private void btnSaveSchedule_Click(object sender, RoutedEventArgs e)
         {
             SerializerDeserializerClass.SaveSchedule(allScheduledTasks);
+        }
+
+        private void btnAddTaskGroup_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void btnCreateTaskGroup_Click(object sender, RoutedEventArgs e)
+        {
+
         }
     }
 }
