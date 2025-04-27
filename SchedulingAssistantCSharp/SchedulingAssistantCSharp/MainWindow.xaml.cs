@@ -308,7 +308,7 @@ namespace SchedulingAssistantCSharp
                     allScheduledTasks.Add(newScheduledTask);
                 }
             }
-            // Refresh the ListBox.
+            // Refresh the ListBox. 
             UpdateScheduledTasksForSelectedDate();
         }
 
