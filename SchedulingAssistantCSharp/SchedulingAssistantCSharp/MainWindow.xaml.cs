@@ -86,7 +86,7 @@ namespace SchedulingAssistantCSharp
         }
         private void btnAddTask_Click(object sender, RoutedEventArgs e)
         {
-            if (!calendarControl.SelectedDate.HasValue)
+            if (calendarControl.SelectedDates.Count == 0)
             {
                 MessageBox.Show("Please select a date first.");
                 return;
@@ -99,12 +99,14 @@ namespace SchedulingAssistantCSharp
                 return;
             }
             TaskDefinition selectedTaskDef = (TaskDefinition)comboBoxTaskDefinitions.SelectedItem;
-            DateTime selectedDate = calendarControl.SelectedDate.Value.Date;
+            SelectedDatesCollection selectedDates = calendarControl.SelectedDates;
 
             // Create a new ScheduledTask using a decorator pattern.
-            ScheduledTask newScheduledTask = new ScheduledTask(selectedTaskDef, selectedDate);
-            allScheduledTasks.Add(newScheduledTask);
-
+            foreach (var selectedDate in selectedDates)
+            {
+                ScheduledTask newScheduledTask = new ScheduledTask(selectedTaskDef, selectedDate);
+                allScheduledTasks.Add(newScheduledTask);
+            }
             // Refresh the ListBox.
             UpdateScheduledTasksForSelectedDate();
         }
@@ -281,7 +283,7 @@ namespace SchedulingAssistantCSharp
 
         private void btnAddTaskGroup_Click(object sender, RoutedEventArgs e)
         {
-            if (!calendarControl.SelectedDate.HasValue)
+            if (calendarControl.SelectedDates.Count == 0)
             {
                 MessageBox.Show("Please select a date first.");
                 return;
@@ -294,13 +296,17 @@ namespace SchedulingAssistantCSharp
                 return;
             }
             TaskGroup selectedTaskGroup = (TaskGroup)comboBoxTaskGroups.SelectedItem;
-            DateTime selectedDate = calendarControl.SelectedDate.Value.Date;
+            // Create a new ScheduledTask using a decorator pattern.
+            SelectedDatesCollection selectedDates = calendarControl.SelectedDates;
 
             // Create a new ScheduledTask using a decorator pattern.
-            foreach (TaskDefinition taskDefinition in selectedTaskGroup.Tasks)
+            foreach (DateTime selectedDate in selectedDates)
             {
-                ScheduledTask newScheduledTask = new ScheduledTask(taskDefinition, selectedDate);
-                allScheduledTasks.Add(newScheduledTask);
+                foreach (TaskDefinition taskDefinition in selectedTaskGroup.Tasks)
+                {
+                    ScheduledTask newScheduledTask = new ScheduledTask(taskDefinition, selectedDate);
+                    allScheduledTasks.Add(newScheduledTask);
+                }
             }
             // Refresh the ListBox.
             UpdateScheduledTasksForSelectedDate();
