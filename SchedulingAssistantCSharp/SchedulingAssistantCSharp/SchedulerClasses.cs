@@ -60,6 +60,11 @@ namespace SchedulingAssistantCSharp
         public TaskDefinition Task { get; }
         public DateTime ScheduledDate { get; set; }
 
+        [Newtonsoft.Json.JsonIgnore]           // prevent JSON loops if you’re saving to JSON
+        public Person AssignedPerson { get; internal set; }
+
+        public string AssignedPersonName { get; set; }
+
         public ScheduledTask(TaskDefinition task, DateTime scheduledDate)
         {
             Task = task;
@@ -201,10 +206,27 @@ namespace SchedulingAssistantCSharp
         }
 
         // Assigns a scheduled task to the person.
-        public void AssignTask(ScheduledTask scheduled_task)
+        public void AssignTask(ScheduledTask scheduledTask)
         {
-            Schedule.Add(scheduled_task);
-            CurrentWeight += scheduled_task.Task.Weight;
+            if (scheduledTask.AssignedPerson != null)
+                throw new InvalidOperationException("Already assigned to "
+                                                    + scheduledTask.AssignedPerson.Name);
+
+            scheduledTask.AssignedPerson = this;    // ← set the back-ref
+            scheduledTask.AssignedPersonName = Name;
+            Schedule.Add(scheduledTask);            // ← add to this person
+            CurrentWeight += scheduledTask.Task.Weight;
+        }
+
+        public void UnassignTask(ScheduledTask scheduledTask)
+        {
+            if (scheduledTask.AssignedPerson != this)
+                throw new InvalidOperationException("Not assigned to me!");
+
+            scheduledTask.AssignedPerson = null;
+            scheduledTask.AssignedPersonName = null;
+            Schedule.Remove(scheduledTask);
+            CurrentWeight -= scheduledTask.Task.Weight;
         }
 
         public override string ToString()

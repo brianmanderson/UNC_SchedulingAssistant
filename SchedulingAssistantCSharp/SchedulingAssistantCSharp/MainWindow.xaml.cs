@@ -35,9 +35,9 @@ namespace SchedulingAssistantCSharp
             InitializeComponent();
             //RoleDefinitionsWindow roleDefinitionsWindow = new RoleDefinitionsWindow();
             //roleDefinitionsWindow.ShowDialog();
-            allScheduledTasks = SerializerDeserializerClass.LoadSchedule();
             availableTaskDefinitions = SerializerDeserializerClass.LoadTaskDefinitions();
             people = SerializerDeserializerClass.LoadPeopleDefinitions();
+            allScheduledTasks = SerializerDeserializerClass.LoadSchedule();
             allTaskGroups = SerializerDeserializerClass.LoadTaskGroups();
             if (people.Count == 0)
             {
@@ -274,6 +274,27 @@ namespace SchedulingAssistantCSharp
             PersonnelDefinitionsWindow personnelDefinitionsWindow = new PersonnelDefinitionsWindow();
             personnelDefinitionsWindow.Owner = this;
             personnelDefinitionsWindow.ShowDialog();
+        }
+        private void AssignTaskButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Grab the ScheduledTask from the button’s Tag
+            var btn = (Button)sender;
+            var stask = btn.Tag as ScheduledTask;
+            if (stask == null) return;
+
+            // Show the assigner dialog (owner so it centers over MainWindow)
+            var dlg = new AssignPersonWindow(people)
+            {
+                Owner = this
+            };
+
+            if (dlg.ShowDialog() == true)
+            {
+                var person = dlg.SelectedPerson;
+                person.AssignTask(stask);        // ← sets both sides
+                listBoxScheduledTasks.Items.Refresh();
+                // Optionally also refresh any weight/balances display
+            }
         }
 
         private void btnSaveSchedule_Click(object sender, RoutedEventArgs e)

@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace SchedulingAssistantCSharp
 {
@@ -40,6 +42,8 @@ namespace SchedulingAssistantCSharp
         public static ObservableCollection<ScheduledTask> LoadSchedule()
         {
             ObservableCollection<ScheduledTask> new_schedule = new ObservableCollection<ScheduledTask>();
+            //List<Person> all_people = people.ToList();
+            ObservableCollection<Person> people = LoadPeopleDefinitions();
             if (File.Exists(DataPaths.ScheduleJsonFilePath))
             {
                 var settings = new JsonSerializerSettings
@@ -49,6 +53,15 @@ namespace SchedulingAssistantCSharp
                 };
                 string json = File.ReadAllText(DataPaths.ScheduleJsonFilePath);
                 new_schedule = JsonConvert.DeserializeObject<ObservableCollection<ScheduledTask>>(json, settings);
+            }
+            foreach (ScheduledTask st in new_schedule)
+            {
+                if (!string.IsNullOrEmpty(st.AssignedPersonName))
+                {
+                    Person person = people.FirstOrDefault(p => p.Name == st.AssignedPersonName);
+                    if (person != null)
+                        person.AssignTask(st);   // sets both sides: Schedule + AssignedPerson
+                }
             }
             return new_schedule;
         }

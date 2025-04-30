@@ -33,14 +33,36 @@
             </StackPanel>
             <!-- List of Scheduled Tasks with a Delete button for each -->
             <ListBox x:Name="listBoxScheduledTasks">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <!-- default when a person _is_ assigned -->
+                        <Setter Property="Background" Value="LightGreen"/>
+                        <Style.Triggers>
+                            <!-- if AssignedPerson == null, switch to red -->
+                            <DataTrigger Binding="{Binding AssignedPerson}" Value="{x:Null}">
+                                <Setter Property="Background" Value="LightCoral"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ListBox.ItemContainerStyle>
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal">
                             <!-- Show the task name and formatted date -->
-                            <TextBlock Text="{Binding Task.Name}" Width="200"/>
-                            <TextBlock Text="{Binding ScheduledDate, StringFormat=' - {0:MM/dd/yyyy}'}" Margin="10,0,0,0"/>
+                            <TextBlock Text="{Binding Task.Name}" Width="100"/>
+                            <TextBlock Text="{Binding AssignedPerson.Name, TargetNullValue='[Unassigned]'}"
+                                       Width="100" Margin="5,0,0,0"/>
+                            <Button Content="Assign" Margin="5,0,0,0" Tag="{Binding}" 
+                                    Click="AssignTaskButton_Click"/>
                             <!-- Delete button that passes the ScheduledTask object via its Tag property -->
-                            <Button Content="Delete" Margin="10,0,0,0" Click="DeleteTaskButton_Click" Tag="{Binding}"/>
+                            <CheckBox x:Name="chkEnableDelete"
+                                      VerticalAlignment="Center"
+                                      Margin="0,0,5,0"/>
+                            <Button Content="Delete?"
+                                    Margin="10,0,0,0"
+                                    Tag="{Binding}"
+                                    Click="DeleteTaskButton_Click"
+                                    IsEnabled="{Binding IsChecked, ElementName=chkEnableDelete}"/>
                         </StackPanel>
                     </DataTemplate>
                 </ListBox.ItemTemplate>

@@ -58,6 +58,9 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="AssignPersonWindow.xaml.cs">
+      <DependentUpon>AssignPersonWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="PersonnelDefinitionsWindow.xaml.cs">
       <DependentUpon>PersonnelDefinitionsWindow.xaml</DependentUpon>
     </Compile>
@@ -72,6 +75,10 @@
     <Compile Include="TaskGroupsWindow.xaml.cs">
       <DependentUpon>TaskGroupsWindow.xaml</DependentUpon>
     </Compile>
+    <Page Include="AssignPersonWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
