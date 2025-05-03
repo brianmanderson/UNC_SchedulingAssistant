@@ -15,8 +15,29 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Collections.ObjectModel;
+using System.Globalization;
 
 namespace SchedulingAssistantCSharp
+{
+    public class DateHasUnlockedTasksConverter : IMultiValueConverter
+    {
+        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (values.Length != 2 ||
+                !(values[0] is DateTime date) ||
+                !(values[1] is IEnumerable<ScheduledTask> tasks))
+                return false;
+
+            // any task on this date that is not locked?
+            return tasks.Any(t => t.ScheduledDate.Date == date.Date && !t.Locked);
+        }
+
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+            => throw new NotSupportedException();
+    }
+    ///
+}
+    namespace SchedulingAssistantCSharp
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -25,7 +46,7 @@ namespace SchedulingAssistantCSharp
     {
         
         ObservableCollection<Person> people = new ObservableCollection<Person>();
-        private ObservableCollection<ScheduledTask> allScheduledTasks = new ObservableCollection<ScheduledTask>();
+        public ObservableCollection<ScheduledTask> allScheduledTasks = new ObservableCollection<ScheduledTask>();
         private ObservableCollection<TaskGroup> allTaskGroups = new ObservableCollection<TaskGroup>();
         // Collection of available task definitions.
         private ObservableCollection<TaskDefinition> availableTaskDefinitions = new ObservableCollection<TaskDefinition>();

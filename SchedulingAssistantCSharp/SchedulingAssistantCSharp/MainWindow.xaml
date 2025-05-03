@@ -12,7 +12,8 @@
             <ColumnDefinition Width="7*"/>
         </Grid.ColumnDefinitions>
         <!-- Your existing UI components go here -->
-        <Calendar x:Name="calendarControl" Margin="10" SelectionMode="MultipleRange" SelectedDatesChanged="CalendarControl_SelectedDateChanged"/>
+        <Calendar x:Name="calendarControl" Margin="10" SelectionMode="MultipleRange"
+                  SelectedDatesChanged="CalendarControl_SelectedDateChanged"/>
         <StackPanel Grid.Column="1" Margin="10">
             <!-- Header -->
             <TextBlock Text="Scheduled Tasks" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
@@ -52,12 +53,41 @@
                             <TextBlock Text="{Binding Task.Name}" Width="100"/>
                             <TextBlock Text="{Binding AssignedPerson.Name, TargetNullValue='[Unassigned]'}"
                                        Width="100" Margin="5,0,0,0"/>
-                            <Button Content="Assign" Margin="5,0,0,0" Tag="{Binding}" 
-                                    Click="AssignTaskButton_Click"/>
+                            <Button Content="Assign" Margin="5,0,0,0" Tag="{Binding}"
+                                    Click="AssignTaskButton_Click">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <!-- default: enabled -->
+                                        <Setter Property="IsEnabled" Value="True"/>
+                                        <Style.Triggers>
+                                            <!-- when Locked is true, disable -->
+                                            <DataTrigger Binding="{Binding Locked}" Value="True">
+                                                <Setter Property="IsEnabled" Value="False"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <CheckBox Content="Lock?"
+                                      Margin="5,0,0,0"
+                                      IsChecked="{Binding Locked, Mode=TwoWay}">
+                                <CheckBox.Style>
+                                    <Style TargetType="CheckBox">
+                                        <!-- by default it’s enabled -->
+                                        <Setter Property="IsEnabled" Value="True"/>
+                                        <Style.Triggers>
+                                            <!-- if there’s no AssignedPerson, disable the box -->
+                                            <DataTrigger Binding="{Binding AssignedPerson}" Value="{x:Null}">
+                                                <Setter Property="IsEnabled" Value="False"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </CheckBox.Style>
+                            </CheckBox>
                             <!-- Delete button that passes the ScheduledTask object via its Tag property -->
                             <CheckBox x:Name="chkEnableDelete"
                                       VerticalAlignment="Center"
-                                      Margin="0,0,5,0"/>
+                                      Margin="25,0,5,0"/>
                             <Button Content="Delete?"
                                     Margin="10,0,0,0"
                                     Tag="{Binding}"

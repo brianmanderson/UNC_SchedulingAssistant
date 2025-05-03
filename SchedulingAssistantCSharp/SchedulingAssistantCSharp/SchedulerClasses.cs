@@ -65,6 +65,8 @@ namespace SchedulingAssistantCSharp
 
         public string AssignedPersonName { get; set; }
 
+        public bool Locked { get; set; } = false;
+
         public ScheduledTask(TaskDefinition task, DateTime scheduledDate)
         {
             Task = task;
