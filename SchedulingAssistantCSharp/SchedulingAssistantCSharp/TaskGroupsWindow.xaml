@@ -33,6 +33,8 @@
                 <Label Content="Group Name:" Width="80"/>
                 <TextBox x:Name="textBoxGroupName" Width="200"
                  LostFocus="textBoxGroupName_LostFocus"/>
+                <Button x:Name="DeleteGroup" Content="Delete?"
+                 Click="btnDeleteGroup_Click" Margin="5,0,0,0"/>
             </StackPanel>
             <TextBlock Text="Available Task Definitions" FontWeight="Bold"
                  Margin="0,5,0,5"/>

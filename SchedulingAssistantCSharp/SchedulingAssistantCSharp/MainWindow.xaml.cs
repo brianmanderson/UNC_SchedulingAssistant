@@ -359,6 +359,7 @@ namespace SchedulingAssistantCSharp
             TaskGroupsWindow taskGroupsWindow = new TaskGroupsWindow();
             taskGroupsWindow.ShowDialog();
             allTaskGroups = SerializerDeserializerClass.LoadTaskGroups();
+            comboBoxTaskGroups.ItemsSource = allTaskGroups;
         }
     }
 }

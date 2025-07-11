@@ -19,7 +19,7 @@
             <TextBlock Text="Scheduled Tasks" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
             <StackPanel Orientation="Vertical" HorizontalAlignment="Left" Margin="0,0,0,10">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,0,10">
-                    <Button x:Name="btnCreateTaskGroup" Height="50" Width="200" Content="Create Task Group" Click="btnCreateTaskGroup_Click" Margin="5,0,0,0"/>
+                    <Button x:Name="btnCreateTaskGroup" Height="50" Width="200" Content="Edit Task Groups" Click="btnCreateTaskGroup_Click" Margin="5,0,0,0"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,0,10">
                     <ComboBox x:Name="comboBoxTaskGroups" Width="175" DisplayMemberPath="Name" />

@@ -42,6 +42,7 @@ namespace SchedulingAssistantCSharp
 
         private void listBoxTaskGroups_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            save_group_task_changes();
             if (listBoxTaskGroups.SelectedItem is TaskGroup grp)
             {
                 currentGroup = grp;
@@ -85,8 +86,7 @@ namespace SchedulingAssistantCSharp
                 RefreshTaskGroupsList();
             }
         }
-
-        private void btnSaveAndExit_Click(object sender, RoutedEventArgs e)
+        private void save_group_task_changes()
         {
             if (currentGroup != null)
             {
@@ -96,9 +96,23 @@ namespace SchedulingAssistantCSharp
                     .Select(sd => allTaskDefinitions.First(td => td.Name == sd.Name))
                     .ToList();
             }
+        }
 
+        private void btnSaveAndExit_Click(object sender, RoutedEventArgs e)
+        {
+            save_group_task_changes();
             SerializerDeserializerClass.SaveTaskGroups(taskGroups);                     // :contentReference[oaicite:4]{index=4}
             Close();
+        }
+
+        private void btnDeleteGroup_Click(object sender, RoutedEventArgs e)
+        {
+            if (listBoxTaskGroups.SelectedItem is TaskGroup grp)
+            {
+                taskGroups.Remove(grp);
+                currentGroup = null;
+                RefreshTaskGroupsList();
+            }
         }
     }
 }

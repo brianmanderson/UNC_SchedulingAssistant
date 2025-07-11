@@ -5,26 +5,32 @@
     <Grid Margin="10">
         <StackPanel>
             <TextBlock Text="Roles" FontWeight="Bold" FontSize="14" Margin="0,0,0,5"/>
-            <ListBox x:Name="listBoxRoles" Height="150" SelectionChanged="listBoxRoles_SelectionChanged"/>
+            <ListBox x:Name="listBoxRoles" Height="150"
+                     SelectionChanged="listBoxRoles_SelectionChanged">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Name}" />
+                            <Button Content="Delete?" Click="DeleteRole_Click" Tag="{Binding}" Margin="5,0,0,0"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
             <Button x:Name="btnAddNewRole" Content="Add New Role" Click="btnAddNewRole_Click" Margin="0,5,0,10"/>
             <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                 <Label Content="Role Name:" Width="80"/>
-                <TextBox x:Name="textBoxRoleName" Width="150" LostFocus="textBoxRoleName_LostFocus"/>
+                <TextBox x:Name="textBoxRoleName" Width="150" TextChanged="textBoxRoleName_LostFocus"/>
             </StackPanel>
             <TextBlock Text="Role Tasks:" FontWeight="Bold" Margin="0,10,0,5"/>
             <ItemsControl x:Name="itemsControlRoleTasks">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <StackPanel />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <CheckBox Content="{Binding Name}" IsChecked="{Binding IsSelected, Mode=TwoWay}" />
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
-            <Button x:Name="SaveButton" Content="Save And Exit" Click="SaveExit_Click" Margin="0,5,0,10"/>
+            <Button x:Name="SaveButton" Content="Save Changes" Click="Save_Click" Margin="0,5,0,10"/>
+            <Button x:Name="SaveAndExitButton" Content="Save And Exit" Click="SaveExit_Click" Margin="0,5,0,10"/>
         </StackPanel>
     </Grid>
 </Window>
