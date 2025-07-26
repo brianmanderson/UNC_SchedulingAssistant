@@ -80,7 +80,7 @@ namespace SchedulingAssistantCSharp
 
         public override string ToString()
         {
-            return $"{base.ToString()} on {ScheduledDate.ToShortDateString()}";
+            return $"{Task.Name} on {ScheduledDate.ToShortDateString()}";
         }
     }
 
@@ -191,7 +191,7 @@ namespace SchedulingAssistantCSharp
             foreach (var conflict_scheduledTask in Schedule)
             {
                 TaskDefinition task = conflict_scheduledTask.Task;
-                if (conflict_scheduledTask.ScheduledDate.ToShortDateString() == conflict_scheduledTask.ScheduledDate.ToShortDateString())
+                if (conflict_scheduledTask.ScheduledDate.ToShortDateString() == scheduled_task.ScheduledDate.ToShortDateString())
                 {
                     // Location conflict.
                     if (!string.IsNullOrEmpty(task.Location) &&

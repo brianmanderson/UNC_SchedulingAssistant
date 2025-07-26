@@ -61,6 +61,7 @@
     <Compile Include="AssignPersonWindow.xaml.cs">
       <DependentUpon>AssignPersonWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="OptimizerClasses.cs" />
     <Compile Include="PersonnelDefinitionsWindow.xaml.cs">
       <DependentUpon>PersonnelDefinitionsWindow.xaml</DependentUpon>
     </Compile>

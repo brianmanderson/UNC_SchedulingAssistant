@@ -39,11 +39,10 @@ namespace SchedulingAssistantCSharp
             string json = JsonConvert.SerializeObject(task_groups, Formatting.Indented);
             File.WriteAllText(DataPaths.TaskGroupJsonFilePath, json);
         }
-        public static ObservableCollection<ScheduledTask> LoadSchedule()
+        public static ObservableCollection<ScheduledTask> LoadSchedule(ObservableCollection<Person> people)
         {
             ObservableCollection<ScheduledTask> new_schedule = new ObservableCollection<ScheduledTask>();
             //List<Person> all_people = people.ToList();
-            ObservableCollection<Person> people = LoadPeopleDefinitions();
             if (File.Exists(DataPaths.ScheduleJsonFilePath))
             {
                 var settings = new JsonSerializerSettings

@@ -58,7 +58,7 @@ namespace SchedulingAssistantCSharp
             //roleDefinitionsWindow.ShowDialog();
             availableTaskDefinitions = SerializerDeserializerClass.LoadTaskDefinitions();
             people = SerializerDeserializerClass.LoadPeopleDefinitions();
-            allScheduledTasks = SerializerDeserializerClass.LoadSchedule();
+            allScheduledTasks = SerializerDeserializerClass.LoadSchedule(people);
             allTaskGroups = SerializerDeserializerClass.LoadTaskGroups();
             if (people.Count == 0)
             {
@@ -296,6 +296,43 @@ namespace SchedulingAssistantCSharp
             personnelDefinitionsWindow.Owner = this;
             personnelDefinitionsWindow.ShowDialog();
         }
+        private void OptimizeSchedule_Click(object sender, RoutedEventArgs e)
+        {
+            OptimizerClass optimizer = new OptimizerClass();
+            // Get all unlocked tasks
+            List<ScheduledTask> unlockedTasks = allScheduledTasks
+                .Where(t => !t.Locked)
+                .OrderBy(t => optimizer.GetEligiblePeople(people, t).Count)
+                .ToList();
+            bool failed_assigning = false;
+            foreach (ScheduledTask task in unlockedTasks)
+            {
+                List<Person> eligiblePeople = optimizer.GetEligiblePeople(people, task);
+
+                if (eligiblePeople.Count == 0)
+                    failed_assigning = true;
+
+                Person bestPerson = eligiblePeople
+                    .OrderBy(p => optimizer.CalculatePersonAssignmentScore(p, task))
+                    .FirstOrDefault();
+
+                if (bestPerson != null)
+                {
+                    try
+                    {
+                        bestPerson.AssignTask(task);
+                    }
+                    catch
+                    {
+                        // Handle conflicting assignments or skips
+                    }
+                }
+            }
+
+            MessageBox.Show("Schedule optimization complete.");
+            listBoxScheduledTasks.Items.Refresh();
+        }
+
         private void AssignTaskButton_Click(object sender, RoutedEventArgs e)
         {
             // Grab the ScheduledTask from the button’s Tag
