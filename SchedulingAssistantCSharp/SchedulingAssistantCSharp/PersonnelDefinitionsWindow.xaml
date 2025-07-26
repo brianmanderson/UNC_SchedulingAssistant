@@ -11,7 +11,16 @@
                 <Button x:Name="btnAddRoles" Content="Add Roles" Click="btnAddRoles_Click" Margin="50,0,0,0" Width="100"/>
             </StackPanel>
             <Button x:Name="btnAddPerson" Content="Add Person" Click="btnAddPerson_Click" Margin="0,0,0,10"/>
-            <ListBox x:Name="listBoxPersons" Height="150" SelectionChanged="listBoxPersons_SelectionChanged"/>
+            <ListBox x:Name="listBoxPersons" Height="150" SelectionChanged="listBoxPersons_SelectionChanged">
+                <ListBox.ItemTemplate>
+                         <DataTemplate>
+                             <StackPanel Orientation="Horizontal">
+                                 <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Width="150"/>
+                                 <Button Content="Delete?" Click="DeletePerson_Click" Tag="{Binding}" Margin="5,0,0,0"/>
+                             </StackPanel>
+                         </DataTemplate>
+                     </ListBox.ItemTemplate>
+            </ListBox>
             <!-- Person Editing Fields -->
             <StackPanel Orientation="Horizontal" Margin="0,10,0,5">
                 <Label Content="Name:" Width="120"/>

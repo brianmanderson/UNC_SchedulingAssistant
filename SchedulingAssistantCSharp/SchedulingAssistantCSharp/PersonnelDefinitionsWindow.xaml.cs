@@ -32,7 +32,6 @@ namespace SchedulingAssistantCSharp
             // (Assume availableRoles is set from an external source.)
             // For demo purposes, if no roles are set, create a default one.
             comboBoxRoles.ItemsSource = availableRoles;
-            listBoxPersons.DisplayMemberPath = "Name";
             RefreshPersonsList();
         }
 
@@ -114,7 +113,18 @@ namespace SchedulingAssistantCSharp
             RefreshPersonsList();
             MessageBox.Show("Person changes saved.");
         }
-
+        private void DeletePerson_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.Tag is Person personToDelete)
+            {
+                if (MessageBox.Show($"Are you sure you want to delete {personToDelete.Name}?", "Confirm Delete", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+                {
+                    persons.Remove(personToDelete);
+                    SerializerDeserializerClass.SavePeopleDefinitions(persons);
+                    RefreshPersonsList();
+                }
+            }
+        }
         private void RefreshPersonsList()
         {
             listBoxPersons.ItemsSource = null;

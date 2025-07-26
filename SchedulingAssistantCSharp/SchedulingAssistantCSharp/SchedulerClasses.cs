@@ -13,16 +13,21 @@ namespace SchedulingAssistantCSharp
         public string Name { get; set; }
         public double Weight { get; set; }
         public string Location { get; set; }
+        public TimeSpan StartTime { get; set; }
+        public TimeSpan EndTime { get; set; }
         public List<string> CompatibleWith { get; set; }
         public List<string> Requires { get; set; }
         public List<string> PeopleCanPerform { get; set; }
 
         public TaskDefinition(string name, double weight, string location = null,
-            List<string> compatibleWith = null, List<string> requires = null)
+            List<string> compatibleWith = null, List<string> requires = null,
+            TimeSpan? startTime = null, TimeSpan? endTime = null)
         {
             Name = name;
             Weight = weight;
             Location = location;
+            StartTime = startTime ?? new TimeSpan(8, 30, 0); // default 8:30 AM
+            EndTime = endTime ?? new TimeSpan(16, 30, 0);     // default 4:30 PM
             CompatibleWith = compatibleWith ?? new List<string>();
             Requires = requires ?? new List<string>();
             PeopleCanPerform = new List<string>(); // Initially empty; can be filled later.
@@ -30,7 +35,7 @@ namespace SchedulingAssistantCSharp
 
         public override string ToString()
         {
-            return $"Task(name={Name}, weight={Weight}, location={Location})";
+            return $"Task(name={Name}, weight={Weight}, location={Location}, time={StartTime}-{EndTime})";
         }
     }
 

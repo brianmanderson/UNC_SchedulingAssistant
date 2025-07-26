@@ -56,7 +56,8 @@ namespace SchedulingAssistantCSharp
                 textBoxName.Text = currentTaskDefinition.Name;
                 textBoxWeight.Text = currentTaskDefinition.Weight.ToString();
                 textBoxLocation.Text = currentTaskDefinition.Location;
-
+                textBoxStartTime.Text = currentTaskDefinition.StartTime.ToString(@"hh\:mm");
+                textBoxEndTime.Text = currentTaskDefinition.EndTime.ToString(@"hh\:mm");
                 // Build the selectable tasks lists for Compatible With and Requires.
                 BuildSelectableTasks();
             }
@@ -127,7 +128,10 @@ namespace SchedulingAssistantCSharp
                 // Update the CompatibleWith and Requires lists based on the checkbox selections.
                 currentTaskDefinition.CompatibleWith = CompatibleTasks.Where(st => st.IsSelected).Select(st => st.Name).ToList();
                 currentTaskDefinition.Requires = RequiredTasks.Where(st => st.IsSelected).Select(st => st.Name).ToList();
-
+                if (TimeSpan.TryParse(textBoxStartTime.Text, out TimeSpan start))
+                    currentTaskDefinition.StartTime = start;
+                if (TimeSpan.TryParse(textBoxEndTime.Text, out TimeSpan end))
+                    currentTaskDefinition.EndTime = end;
                 SerializerDeserializerClass.SaveTaskDefinitions(taskDefinitions);
                 RefreshTaskList();
             }
@@ -136,7 +140,8 @@ namespace SchedulingAssistantCSharp
         private void btnAddNewTask_Click(object sender, RoutedEventArgs e)
         {
             // Create a new TaskDefinition with generic default values.
-            TaskDefinition newTask = new TaskDefinition("New Task", 0.0, "DefaultLocation", new List<string>(), new List<string>());
+            TaskDefinition newTask = new TaskDefinition("New Task", 0.0, "DefaultLocation", new List<string>(), new List<string>(),
+                new TimeSpan(8, 30, 0), new TimeSpan(16, 30, 0));
 
             taskDefinitions.Add(newTask);
             SerializerDeserializerClass.SaveTaskDefinitions(taskDefinitions);

@@ -38,6 +38,12 @@
                 <Label Content="Weight:" Width="100"/>
                 <TextBox x:Name="textBoxWeight" Width="200"/>
             </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                <Label Content="Start Time:" Width="80"/>
+                <TextBox x:Name="textBoxStartTime" Width="100" ToolTip="Format: HH:mm (e.g., 08:30)"/>
+                <Label Content="End Time:" Width="80"/>
+                <TextBox x:Name="textBoxEndTime" Width="100" ToolTip="Format: HH:mm (e.g., 16:30)"/>
+            </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                 <Label Content="Location:" Width="100"/>
                 <TextBox x:Name="textBoxLocation" Width="200"/>

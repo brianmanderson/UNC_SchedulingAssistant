@@ -311,7 +311,13 @@ namespace SchedulingAssistantCSharp
 
             if (dlg.ShowDialog() == true)
             {
-                var person = dlg.SelectedPerson;
+                Person person = dlg.SelectedPerson;
+                if (stask.AssignedPerson != null)
+                {
+                    Person previousPerson = people.FirstOrDefault(p => p.Name == stask.AssignedPerson.Name);
+                    previousPerson.UnassignTask(stask); // Unassign the task from the previous person.
+                    // If the task is already assigned, remove it from the previous person.
+                }
                 person.AssignTask(stask);        // ← sets both sides
                 listBoxScheduledTasks.Items.Refresh();
                 // Optionally also refresh any weight/balances display
