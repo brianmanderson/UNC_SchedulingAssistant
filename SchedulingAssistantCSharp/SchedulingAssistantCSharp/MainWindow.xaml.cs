@@ -56,17 +56,18 @@ namespace SchedulingAssistantCSharp
             InitializeComponent();
             //RoleDefinitionsWindow roleDefinitionsWindow = new RoleDefinitionsWindow();
             //roleDefinitionsWindow.ShowDialog();
+            calendarControl.SelectedDate = DateTime.Today;
+            MainLoadUp();
+        }
+        private void MainLoadUp()
+        {
             availableTaskDefinitions = SerializerDeserializerClass.LoadTaskDefinitions();
             people = SerializerDeserializerClass.LoadPeopleDefinitions();
             allScheduledTasks = SerializerDeserializerClass.LoadSchedule(people);
             allTaskGroups = SerializerDeserializerClass.LoadTaskGroups();
-            if (people.Count == 0)
-            {
-                create_people();
-            }
             DateTime day = DateTime.Now;
             bool is_scheduled = false;
-            for (int i = 0; i < 10; i++) 
+            for (int i = 0; i < 10; i++)
             {
                 day.AddDays(i);
                 foreach (ScheduledTask task in allScheduledTasks)
@@ -83,7 +84,6 @@ namespace SchedulingAssistantCSharp
             }
 
             // Optionally, set the calendar to today's date.
-            calendarControl.SelectedDate = DateTime.Today;
             comboBoxTaskDefinitions.ItemsSource = availableTaskDefinitions;
             comboBoxTaskGroups.ItemsSource = allTaskGroups;
             UpdateScheduledTasksForSelectedDate();
@@ -288,6 +288,7 @@ namespace SchedulingAssistantCSharp
             TaskDefinitionsWindow taskDefinitionsWindow = new TaskDefinitionsWindow();
             taskDefinitionsWindow.Owner = this;
             taskDefinitionsWindow.ShowDialog();
+            MainLoadUp();
         }
 
         private void btnCreatePersonnel_Click(object sender, RoutedEventArgs e)
@@ -295,36 +296,69 @@ namespace SchedulingAssistantCSharp
             PersonnelDefinitionsWindow personnelDefinitionsWindow = new PersonnelDefinitionsWindow();
             personnelDefinitionsWindow.Owner = this;
             personnelDefinitionsWindow.ShowDialog();
+            MainLoadUp();
+        }
+        private void SetPersonMaxWeight()
+        {
+            int uniqueDateCount = allScheduledTasks.Where(t => !t.Locked).Select(t => t.ScheduledDate.Date).Distinct().Count();
+            foreach (Person p in people)
+            {
+                p.MaxWeight = p.WeightPerDay * uniqueDateCount;
+            }
         }
         private void OptimizeSchedule_Click(object sender, RoutedEventArgs e)
         {
+            SetPersonMaxWeight(); // Recalculate person.MaxWeight based on active days
+
+            var annealer = new SimulatedAnnealingScheduler();
+            var bestSchedule = annealer.Run(people.ToList(), allScheduledTasks.ToList());
+
+            annealer.ApplySchedule(bestSchedule);
+            listBoxScheduledTasks.Items.Refresh();
+
+            MessageBox.Show("Schedule optimization complete via Simulated Annealing.");
+            return;
+            SetPersonMaxWeight();
             OptimizerClass optimizer = new OptimizerClass();
             // Get all unlocked tasks
-            List<ScheduledTask> unlockedTasks = allScheduledTasks
-                .Where(t => !t.Locked)
-                .OrderBy(t => optimizer.GetEligiblePeople(people, t).Count)
-                .ToList();
-            bool failed_assigning = false;
-            foreach (ScheduledTask task in unlockedTasks)
+            double preference_weight = -1.0;
+            bool completed_assigning = false;
+            while (!completed_assigning && preference_weight < 10)
             {
-                List<Person> eligiblePeople = optimizer.GetEligiblePeople(people, task);
-
-                if (eligiblePeople.Count == 0)
-                    failed_assigning = true;
-
-                Person bestPerson = eligiblePeople
-                    .OrderBy(p => optimizer.CalculatePersonAssignmentScore(p, task))
-                    .FirstOrDefault();
-
-                if (bestPerson != null)
+                preference_weight += 1.0;
+                List<ScheduledTask> all_unlockedTasks = allScheduledTasks.Where(t => !t.Locked).ToList();
+                foreach (ScheduledTask task in all_unlockedTasks)
                 {
-                    try
+                    foreach (Person p in people)
                     {
-                        bestPerson.AssignTask(task);
+                        if (p.Schedule.Contains(task))
+                        {
+                            p.UnassignTask(task);
+                        }
                     }
-                    catch
+                }
+                // Lets set the MaxWeight for everyone based on the number of days we have in the schedule
+
+                while (all_unlockedTasks.Count > 0)
+                {
+                    // After each assigment, re-evaluate the tasks
+                    all_unlockedTasks = all_unlockedTasks
+                        .OrderBy(t => optimizer.GetEligiblePeople(people.ToList(), t, preference_weight).Count)
+                        .ToList();
+                    ScheduledTask task = all_unlockedTasks.Last();
+                    all_unlockedTasks.Remove(task);
+                    List<Person> eligiblePeople = optimizer.GetEligiblePeople(people.ToList(), task, preference_weight);
+
+                    if (eligiblePeople.Count == 0)
+                        break;
+
+                    Person bestPerson = eligiblePeople
+                        .OrderBy(p => optimizer.CalculatePersonAssignmentScore(p, task))
+                        .FirstOrDefault();
+                    bestPerson.AssignTask(task);
+                    if (all_unlockedTasks.Count == 0)
                     {
-                        // Handle conflicting assignments or skips
+                        completed_assigning = true;
                     }
                 }
             }

@@ -18,6 +18,7 @@ namespace SchedulingAssistantCSharp
         private List<SelectableTask> selectablePersonTasks = new List<SelectableTask>();
 
         private Person currentPerson;
+        private bool isPopulatingFields = false;
 
         // List of available roles provided externally.
         private ObservableCollection<Role> availableRoles = new ObservableCollection<Role>();
@@ -55,11 +56,13 @@ namespace SchedulingAssistantCSharp
         {
             if (listBoxPersons.SelectedItem is Person selectedPerson)
             {
+                isPopulatingFields = true; // Begin suppressing TextChanged
                 currentPerson = selectedPerson;
                 textBoxPersonName.Text = currentPerson.Name;
                 textBoxWeightPerDay.Text = currentPerson.WeightPerDay.ToString();
                 textBoxMaxWeight.Text = currentPerson.MaxWeight.ToString();
                 BuildSelectablePersonTasks();
+                isPopulatingFields = false; // Re-enable TextChanged
             }
         }
 
@@ -76,15 +79,6 @@ namespace SchedulingAssistantCSharp
             }
             itemsControlPerformableTasks.ItemsSource = null;
             itemsControlPerformableTasks.ItemsSource = selectablePersonTasks;
-        }
-
-        private void textBoxChanged(object sender, RoutedEventArgs e)
-        {
-            if (currentPerson != null)
-            {
-                currentPerson.Name = textBoxPersonName.Text;
-                RefreshPersonsList();
-            }
         }
 
         // Event handler that fires whenever a performable task checkbox is checked or unchecked.
@@ -145,6 +139,8 @@ namespace SchedulingAssistantCSharp
 
         private void textBoxChanged(object sender, TextChangedEventArgs e)
         {
+            if (isPopulatingFields || currentPerson == null)
+                return;
             if (currentPerson != null && double.TryParse(textBoxWeightPerDay.Text, out double weight))
             {
                 currentPerson.WeightPerDay = weight;
