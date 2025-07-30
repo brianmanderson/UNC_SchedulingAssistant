@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Drawing.Printing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -51,7 +52,6 @@ namespace SchedulingAssistantCSharp
     {
         private Random rng = new Random();
         private OptimizerClass optimizer = new OptimizerClass();
-        private List<Person> InternalPeople;
 
         public class ScheduleState
         {
@@ -133,16 +133,16 @@ namespace SchedulingAssistantCSharp
         }
         public ScheduleState Run(List<Person> people, List<ScheduledTask> tasks)
         {
-            ResetPeople(people);
+            //ResetPeople(people);
             ScheduleState current = GenerateInitialSchedule(people, tasks);
             ScheduleState best = current.Clone();
-            double temperature = 10000.0;
+            double temperature = 200.0;
             const double minTemp = 0.1;
-            const double coolingRate = 0.95;
+            const double coolingRate = 0.98;
 
             while (temperature > minTemp)
             {
-                for (int i = 0; i < 100; i++)
+                for (int i = 0; i < 1000; i++)
                 {
                     ScheduleState neighbor = GenerateNeighbor(current);
                     double delta = neighbor.Cost - current.Cost;
@@ -166,12 +166,22 @@ namespace SchedulingAssistantCSharp
             List<Person> temp_people = new List<Person>(people);
             foreach (var task in tasks.Where(t => !t.Locked))
             {
-                List<Person> eligible = optimizer.GetEligiblePeople(temp_people, task, 9.0);
-                if (eligible.Count == 0) continue;
-                Person best = eligible.OrderBy(p => optimizer.CalculatePersonAssignmentScore(p, task)).First();
-                best.AssignTask(task);
-                assignment[task] = best;
-                virtualWeights[best.Name] += task.Task.Weight;
+                if (task.AssignedPerson is null)
+                {
+                    List<Person> eligible = optimizer.GetEligiblePeople(temp_people, task, 9.0);
+                    if (eligible.Count == 0) continue;
+                    //Person best = eligible.OrderBy(p => optimizer.CalculatePersonAssignmentScore(p, task)).First();
+                    Person best = eligible[rng.Next(eligible.Count)];
+                    best.AssignTask(task);
+                    assignment[task] = best;
+                    virtualWeights[best.Name] += task.Task.Weight;
+                }
+                else
+                {
+                    Person best = people.Where(p => p.Name == task.AssignedPersonName).First();
+                    assignment[task] = best;
+                    virtualWeights[best.Name] += task.Task.Weight;
+                }
             }
 
             return new ScheduleState

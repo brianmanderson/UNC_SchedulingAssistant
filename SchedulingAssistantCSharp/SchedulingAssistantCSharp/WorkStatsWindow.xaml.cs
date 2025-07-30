@@ -15,7 +15,7 @@ namespace SchedulingAssistantCSharp
         public string[] LabelsXAxis { get; set; }
         public Func<double, string> FormatterYAxis { get; set; }
 
-        private DateTime _startDate = DateTime.Today.AddDays(-7);
+        private DateTime _startDate = DateTime.Today.AddDays(-90);
         public DateTime StartDate
         {
             get => _startDate;
@@ -26,7 +26,7 @@ namespace SchedulingAssistantCSharp
             }
         }
 
-        private DateTime _endDate = DateTime.Today;
+        private DateTime _endDate = DateTime.Today.AddDays(90);
         public DateTime EndDate
         {
             get => _endDate;
@@ -52,31 +52,42 @@ namespace SchedulingAssistantCSharp
 
         private void LoadStats()
         {
-            var labels = new List<string>();
-            var values = new ChartValues<int>();
+            // Identify unique Task Names
+            var taskNames = _allScheduledTasks
+                .Select(t => t.Task.Name)
+                .Distinct()
+                .OrderBy(name => name)
+                .ToList();
 
-            foreach (var person in _allPeople)
+            // Set Labels as person names
+            LabelsXAxis = _allPeople.Select(p => p.Name).ToArray();
+
+            // Create SeriesCollection with a ColumnSeries per task type
+            SeriesCollection = new SeriesCollection();
+
+            foreach (var taskName in taskNames)
             {
-                int taskCount = _allScheduledTasks.Count(t =>
-                    t.AssignedPerson != null &&
-                    t.AssignedPerson.Name == person.Name &&
-                    t.ScheduledDate >= StartDate &&
-                    t.ScheduledDate <= EndDate);
+                var taskCountsPerPerson = new ChartValues<int>();
 
-                labels.Add(person.Name);
-                values.Add(taskCount);
+                foreach (var person in _allPeople)
+                {
+                    int count = _allScheduledTasks.Count(t =>
+                        t.AssignedPerson != null &&
+                        t.AssignedPerson.Name == person.Name &&
+                        t.Task.Name == taskName &&
+                        t.ScheduledDate.Date >= StartDate.Date &&
+                        t.ScheduledDate.Date <= EndDate.Date);
+
+                    taskCountsPerPerson.Add(count);
+                }
+
+                SeriesCollection.Add(new ColumnSeries
+                {
+                    Title = taskName,
+                    Values = taskCountsPerPerson
+                });
             }
 
-            SeriesCollection = new SeriesCollection
-            {
-                new ColumnSeries
-                {
-                    Title = "Tasks",
-                    Values = values
-                }
-            };
-
-            LabelsXAxis = labels.ToArray();
             FormatterYAxis = value => value.ToString("N0");
 
             OnPropertyChanged(nameof(SeriesCollection));
