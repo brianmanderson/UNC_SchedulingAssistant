@@ -67,11 +67,13 @@ namespace SchedulingAssistantCSharp
                 {
                     var clonedTask = new ScheduledTask(
                         new TaskDefinition(
-                            task.Task.Name,
-                            task.Task.Weight,
-                            task.Task.Location,
-                            new List<string>(task.Task.CompatibleWith),
-                            new List<string>(task.Task.Requires)
+                            name: task.Task.Name,
+                            weight: task.Task.Weight,
+                            location: task.Task.Location,
+                            compatibleWith: new List<string>(task.Task.CompatibleWith),
+                            requires: new List<string>(task.Task.Requires),
+                            startTime: task.Task.StartTime,
+                            endTime: task.Task.EndTime
                         ),
                         task.ScheduledDate
                     )
@@ -91,7 +93,8 @@ namespace SchedulingAssistantCSharp
                             p.WeightPerDay,
                             p.Preferences.Select(pref => new Preference(pref.Day, pref.TaskOrLocation, pref.Weight)).ToList(),
                             p.AvoidPreferences.Select(pref => new Preference(pref.Day, pref.TaskOrLocation, pref.Weight)).ToList(),
-                            p.PerformableTasks // Assume task definitions are safe to share across
+                            p.PerformableTasks, // Assume task definitions are safe to share across
+                            p.MaxWeight
                         )
                     );
 
@@ -132,7 +135,7 @@ namespace SchedulingAssistantCSharp
         {
             ScheduleState current = GenerateInitialSchedule(people, tasks);
             ScheduleState best = current.Clone();
-            double temperature = 100.0;
+            double temperature = 10000.0;
             const double minTemp = 0.1;
             const double coolingRate = 0.95;
 
@@ -254,14 +257,13 @@ namespace SchedulingAssistantCSharp
                 double shiftPenalty = 0.0;
                 double preferencePenalty = 0.0;
 
-                foreach (var task in group)
+                foreach (ScheduledTask scheduledTask in person.Schedule.OrderBy(t => t.ScheduledDate).ThenBy(t => t.Task.EndTime).ToList())
                 {
-                    ScheduledTask scheduledTask = task.Key;
 
                     // Shift penalty
                     TimeSpan prevEnd = optimizer.GetPreviousDayEndTime(person, scheduledTask.ScheduledDate);
                     TimeSpan thisStart = scheduledTask.Task.StartTime;
-                    if (prevEnd != TimeSpan.Zero && (thisStart - prevEnd).TotalHours < 12)
+                    if (prevEnd != TimeSpan.Zero && 24 - (prevEnd - thisStart).TotalHours < 12)
                         shiftPenalty += 8;
 
                     // Preference penalty

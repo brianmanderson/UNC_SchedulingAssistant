@@ -133,7 +133,8 @@ namespace SchedulingAssistantCSharp
         public Person(string name, double weightPerDay,
             List<Preference> preferences = null,
             List<Preference> avoidPreferences = null,
-            List<TaskDefinition> performableTasks = null)
+            List<TaskDefinition> performableTasks = null,
+            double maxWeight = 0.0)
         {
             Name = name;
             WeightPerDay = weightPerDay;
@@ -141,7 +142,7 @@ namespace SchedulingAssistantCSharp
             AvoidPreferences = avoidPreferences ?? new List<Preference>();
             Schedule = new List<ScheduledTask>();
             CurrentWeight = 0.0;
-            MaxWeight = 0.0;
+            MaxWeight = maxWeight;
             PerformableTasks = performableTasks ?? new List<TaskDefinition>();
 
             AddDevVacation(); // Adds default tasks like "Dev" and "Vacation"
