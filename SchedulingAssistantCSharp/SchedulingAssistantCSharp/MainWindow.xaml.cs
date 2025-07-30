@@ -97,7 +97,7 @@ namespace SchedulingAssistantCSharp
             if (calendarControl.SelectedDate.HasValue)
             {
                 DateTime selectedDate = calendarControl.SelectedDate.Value.Date;
-                var tasksForDay = allScheduledTasks.Where(t => t.ScheduledDate.Date == selectedDate).ToList();
+                var tasksForDay = allScheduledTasks.Where(t => t.ScheduledDate.Date == selectedDate).OrderBy(d => d.Task.StartTime).ToList();
                 listBoxScheduledTasks.ItemsSource = tasksForDay;
             }
             else
@@ -306,65 +306,33 @@ namespace SchedulingAssistantCSharp
                 p.MaxWeight = p.WeightPerDay * uniqueDateCount;
             }
         }
+        private void OpenWorkStats_Click(object sender, RoutedEventArgs e)
+        {
+            var statsWindow = new WorkStatsWindow(people.ToList()); // use your actual list
+            statsWindow.ShowDialog();
+        }
         private void OptimizeSchedule_Click(object sender, RoutedEventArgs e)
         {
             SetPersonMaxWeight(); // Recalculate person.MaxWeight based on active days
 
             var annealer = new SimulatedAnnealingScheduler();
+            if (people.Count == 0)
+            {
+                MessageBox.Show("No people defined. Please create personnel first.");
+                return;
+            }
+            if (allScheduledTasks.Count == 0)
+            {
+                MessageBox.Show("Nothing scheduled, please add tasks first.");
+                return;
+            }
             var bestSchedule = annealer.Run(people.ToList(), allScheduledTasks.ToList());
 
-            annealer.ApplySchedule(bestSchedule);
+            annealer.ApplySchedule(bestSchedule, people.ToList(), allScheduledTasks.ToList());
             listBoxScheduledTasks.Items.Refresh();
 
             MessageBox.Show("Schedule optimization complete via Simulated Annealing.");
             return;
-            SetPersonMaxWeight();
-            OptimizerClass optimizer = new OptimizerClass();
-            // Get all unlocked tasks
-            double preference_weight = -1.0;
-            bool completed_assigning = false;
-            while (!completed_assigning && preference_weight < 10)
-            {
-                preference_weight += 1.0;
-                List<ScheduledTask> all_unlockedTasks = allScheduledTasks.Where(t => !t.Locked).ToList();
-                foreach (ScheduledTask task in all_unlockedTasks)
-                {
-                    foreach (Person p in people)
-                    {
-                        if (p.Schedule.Contains(task))
-                        {
-                            p.UnassignTask(task);
-                        }
-                    }
-                }
-                // Lets set the MaxWeight for everyone based on the number of days we have in the schedule
-
-                while (all_unlockedTasks.Count > 0)
-                {
-                    // After each assigment, re-evaluate the tasks
-                    all_unlockedTasks = all_unlockedTasks
-                        .OrderBy(t => optimizer.GetEligiblePeople(people.ToList(), t, preference_weight).Count)
-                        .ToList();
-                    ScheduledTask task = all_unlockedTasks.Last();
-                    all_unlockedTasks.Remove(task);
-                    List<Person> eligiblePeople = optimizer.GetEligiblePeople(people.ToList(), task, preference_weight);
-
-                    if (eligiblePeople.Count == 0)
-                        break;
-
-                    Person bestPerson = eligiblePeople
-                        .OrderBy(p => optimizer.CalculatePersonAssignmentScore(p, task))
-                        .FirstOrDefault();
-                    bestPerson.AssignTask(task);
-                    if (all_unlockedTasks.Count == 0)
-                    {
-                        completed_assigning = true;
-                    }
-                }
-            }
-
-            MessageBox.Show("Schedule optimization complete.");
-            listBoxScheduledTasks.Items.Refresh();
         }
 
         private void AssignTaskButton_Click(object sender, RoutedEventArgs e)
@@ -398,6 +366,7 @@ namespace SchedulingAssistantCSharp
         private void btnSaveSchedule_Click(object sender, RoutedEventArgs e)
         {
             SerializerDeserializerClass.SaveSchedule(allScheduledTasks);
+            MessageBox.Show("Schedule Saved!");
         }
 
         private void btnAddTaskGroup_Click(object sender, RoutedEventArgs e)
@@ -437,6 +406,54 @@ namespace SchedulingAssistantCSharp
             taskGroupsWindow.ShowDialog();
             allTaskGroups = SerializerDeserializerClass.LoadTaskGroups();
             comboBoxTaskGroups.ItemsSource = allTaskGroups;
+        }
+
+        private void UnlockTasks_Click(object sender, RoutedEventArgs e)
+        {
+            if (calendarControl.SelectedDates.Count == 0)
+            {
+                MessageBox.Show("Please select one or more dates in the calendar.");
+                return;
+            }
+
+            foreach (var selectedDate in calendarControl.SelectedDates)
+            {
+                List<ScheduledTask> tasksToUnlock = allScheduledTasks
+                    .Where(t => t.ScheduledDate.Date == selectedDate.Date && t.Locked)
+                    .ToList();
+
+                foreach (ScheduledTask task in tasksToUnlock)
+                {
+                    task.Locked = false;
+                }
+            }
+
+            UpdateScheduledTasksForSelectedDate();
+            MessageBox.Show("Unlocked all tasks for the selected date(s).");
+        }
+
+        private void DeleteUnlockedTasks_Click(object sender, RoutedEventArgs e)
+        {
+            if (calendarControl.SelectedDates.Count == 0)
+            {
+                MessageBox.Show("Please select one or more dates in the calendar.");
+                return;
+            }
+
+            foreach (var selectedDate in calendarControl.SelectedDates)
+            {
+                List<ScheduledTask> tasksToDelete = allScheduledTasks
+                    .Where(t => t.ScheduledDate.Date == selectedDate.Date && !t.Locked)
+                    .ToList();
+
+                foreach (ScheduledTask task in tasksToDelete)
+                {
+                    allScheduledTasks.Remove(task);
+                }
+            }
+
+            UpdateScheduledTasksForSelectedDate();
+            MessageBox.Show("Deleted all unlocked tasks for the selected date(s).");
         }
     }
 }

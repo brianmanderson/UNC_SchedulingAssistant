@@ -280,13 +280,25 @@ namespace SchedulingAssistantCSharp
             return total;
         }
 
-        public void ApplySchedule(ScheduleState state)
+        public void ApplySchedule(ScheduleState state, List<Person> people, List<ScheduledTask> scheduledTasks)
         {
-            foreach (var person in state.Assignment.Values.Distinct())
-                person.Schedule.Clear();
+            foreach (Person person in people)
+            {
+                List<ScheduledTask> tasksToRemove = person.Schedule.Where(t => !t.Locked).ToList();
+                foreach (ScheduledTask scheduledTask in tasksToRemove)
+                {
+                    person.UnassignTask(scheduledTask);
+                }
+            }
 
             foreach (var kvp in state.Assignment)
-                kvp.Value.AssignTask(kvp.Key);
+            {
+                string personName = kvp.Key.AssignedPersonName;
+                Person person = people.Where(p => p.Name == kvp.Key.AssignedPersonName).First();
+                ScheduledTask actualTask = scheduledTasks.Where(p => !p.Locked && p.ScheduledDate == kvp.Key.ScheduledDate && p.Task.Name == kvp.Key.Task.Name).First();
+                person.AssignTask(actualTask);
+            }
+
         }
     }
 
