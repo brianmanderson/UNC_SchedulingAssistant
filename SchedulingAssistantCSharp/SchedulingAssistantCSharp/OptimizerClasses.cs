@@ -61,11 +61,70 @@ namespace SchedulingAssistantCSharp
 
             public ScheduleState Clone()
             {
+                // Step 1: Deep copy all ScheduledTasks
+                Dictionary<ScheduledTask, ScheduledTask> taskMap = new Dictionary<ScheduledTask, ScheduledTask>();
+                foreach (var task in Assignment.Keys)
+                {
+                    var clonedTask = new ScheduledTask(
+                        new TaskDefinition(
+                            task.Task.Name,
+                            task.Task.Weight,
+                            task.Task.Location,
+                            new List<string>(task.Task.CompatibleWith),
+                            new List<string>(task.Task.Requires)
+                        ),
+                        task.ScheduledDate
+                    )
+                    {
+                        Locked = task.Locked
+                    };
+                    taskMap[task] = clonedTask;
+                }
+
+                // Step 2: Deep copy all Persons
+                Dictionary<string, Person> personMap = Assignment.Values
+                    .Distinct()
+                    .ToDictionary(
+                        p => p.Name,
+                        p => new Person(
+                            p.Name,
+                            p.WeightPerDay,
+                            p.Preferences.Select(pref => new Preference(pref.Day, pref.TaskOrLocation, pref.Weight)).ToList(),
+                            p.AvoidPreferences.Select(pref => new Preference(pref.Day, pref.TaskOrLocation, pref.Weight)).ToList(),
+                            p.PerformableTasks // Assume task definitions are safe to share across
+                        )
+                    );
+
+                // Step 3: Reconstruct Assignment with cloned ScheduledTasks and Persons
+                var newAssignment = new Dictionary<ScheduledTask, Person>();
+                foreach (var kvp in Assignment)
+                {
+                    var originalTask = kvp.Key;
+                    var originalPerson = kvp.Value;
+
+                    var clonedTask = taskMap[originalTask];
+                    var clonedPerson = personMap[originalPerson.Name];
+
+                    clonedTask.AssignedPerson = clonedPerson;
+                    clonedTask.AssignedPersonName = clonedPerson.Name;
+
+                    clonedPerson.Schedule.Add(clonedTask);
+                    newAssignment[clonedTask] = clonedPerson;
+                }
+
+                // Step 4: Clone Virtual Weights
+                var newWeights = VirtualWeights.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                foreach (var p in personMap.Values)
+                {
+                    if (newWeights.TryGetValue(p.Name, out var w))
+                        p.CurrentWeight = w;
+                }
+
                 return new ScheduleState
                 {
-                    Assignment = new Dictionary<ScheduledTask, Person>(Assignment),
-                    VirtualWeights = new Dictionary<string, double>(VirtualWeights),
-                    Cost = this.Cost
+                    Assignment = newAssignment,
+                    VirtualWeights = newWeights,
+                    Cost = Cost
                 };
             }
         }
@@ -81,7 +140,7 @@ namespace SchedulingAssistantCSharp
             {
                 for (int i = 0; i < 100; i++)
                 {
-                    ScheduleState neighbor = GenerateNeighbor(current, people);
+                    ScheduleState neighbor = GenerateNeighbor(current);
                     double delta = neighbor.Cost - current.Cost;
                     if (delta < 0 || rng.NextDouble() < Math.Exp(-delta / temperature))
                     {
@@ -115,41 +174,18 @@ namespace SchedulingAssistantCSharp
             {
                 Assignment = assignment,
                 VirtualWeights = virtualWeights,
-                Cost = EvaluateSchedule(assignment, virtualWeights, people)
+                Cost = EvaluateSchedule(assignment, virtualWeights)
             };
         }
 
-        private ScheduleState GenerateNeighbor(ScheduleState current, List<Person> base_people)
+        private ScheduleState GenerateNeighbor(ScheduleState current)
         {
             var neighbor = current.Clone();
-            List<Person> people = base_people.Select(p => new Person(
-                p.Name,
-                p.WeightPerDay,
-                p.Preferences.Select(pref => new Preference(pref.Day, pref.TaskOrLocation, pref.Weight)).ToList(),
-                p.AvoidPreferences.Select(pref => new Preference(pref.Day, pref.TaskOrLocation, pref.Weight)).ToList(),
-                p.PerformableTasks // We assume tasks are shared references and immutable
-            )).ToList();
-            foreach (Person person in people)
-            {
-                if (current.VirtualWeights.TryGetValue(person.Name, out double weight))
-                {
-                    person.CurrentWeight = weight;
-                }
 
-                var assignedTasks = current.Assignment
-                    .Where(kvp => kvp.Value.Name == person.Name)
-                    .Select(kvp => kvp.Key)
-                    .ToList();
-
-                foreach (var task in assignedTasks)
-                {
-                    person.Schedule.Add(task);  // Safe because Person.AssignTask is not needed in this simulated environment
-                }
-            }
             List<ScheduledTask> unlockedTasks = neighbor.Assignment.Keys.ToList();
-            var taskToReassign = unlockedTasks[rng.Next(unlockedTasks.Count)];
+            ScheduledTask taskToReassign = unlockedTasks[rng.Next(unlockedTasks.Count)];
             Person currentPerson = neighbor.Assignment[taskToReassign];
-            List<Person> other_people = people.Where(p => p != currentPerson).ToList();
+            List<Person> other_people = neighbor.Assignment.Values.Distinct().Where(p => p != currentPerson).ToList();
             Person newPerson = other_people[rng.Next(other_people.Count)];
             bool isAbleToPerform = newPerson.IsAbleToPerformTask(taskToReassign);
             if (!isAbleToPerform)
@@ -201,11 +237,11 @@ namespace SchedulingAssistantCSharp
                 neighbor.Assignment[taskToReassign] = newPerson;
                 neighbor.VirtualWeights[newPerson.Name] += taskToReassign.Task.Weight;
             }
-            neighbor.Cost = EvaluateSchedule(neighbor.Assignment, neighbor.VirtualWeights, people);
+            neighbor.Cost = EvaluateSchedule(neighbor.Assignment, neighbor.VirtualWeights);
             return neighbor;
         }
 
-        private double EvaluateSchedule(Dictionary<ScheduledTask, Person> assignment, Dictionary<string, double> virtualWeights, List<Person> people)
+        private double EvaluateSchedule(Dictionary<ScheduledTask, Person> assignment, Dictionary<string, double> virtualWeights)
         {
             var personAssignments = assignment.GroupBy(kvp => kvp.Value);
             double total = 0.0;

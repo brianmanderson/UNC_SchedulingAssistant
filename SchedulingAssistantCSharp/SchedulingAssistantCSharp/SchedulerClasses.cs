@@ -238,7 +238,7 @@ namespace SchedulingAssistantCSharp
 
         public void UnassignTask(ScheduledTask scheduledTask)
         {
-            if (scheduledTask.AssignedPerson != this)
+            if (scheduledTask.AssignedPerson.Name != Name)
                 throw new InvalidOperationException("Not assigned to me!");
 
             scheduledTask.AssignedPerson = null;
