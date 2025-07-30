@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Drawing.Printing;
@@ -158,6 +159,71 @@ namespace SchedulingAssistantCSharp
             return best;
         }
 
+        public ScheduleState RunWithAdaptiveCooling(List<Person> people, List<ScheduledTask> tasks, Action<double> progressCallback = null)
+        {
+            ScheduleState current = GenerateInitialSchedule(people, tasks);
+            ScheduleState best = current.Clone();
+
+            double temperature = 100.0;
+            const double minTemp = 0.1;
+            double coolingRate = 0.98;
+
+            int iterationsPerTemp = 500;
+            int parallelNeighbors = 10;
+
+            int stepsSinceImprovement = 0;
+            int totalSteps = 0;
+
+            while (temperature > minTemp)
+            {
+                bool improvedThisTemp = false;
+
+                for (int i = 0; i < iterationsPerTemp; i++)
+                {
+                    var neighbors = new ConcurrentBag<ScheduleState>();
+
+                    Parallel.For(0, parallelNeighbors, _ =>
+                    {
+                        neighbors.Add(GenerateNeighbor(current));
+                    });
+
+                    var bestNeighbor = neighbors.OrderBy(n => n.Cost).First();
+                    double delta = bestNeighbor.Cost - current.Cost;
+
+                    if (delta < 0 || rng.NextDouble() < Math.Exp(-delta / temperature))
+                    {
+                        current = bestNeighbor;
+
+                        if (current.Cost < best.Cost)
+                        {
+                            best = current.Clone();
+                            improvedThisTemp = true;
+                        }
+                    }
+                }
+
+                // Adaptive cooling logic
+                if (improvedThisTemp)
+                {
+                    stepsSinceImprovement = 0;
+                    coolingRate = Math.Min(0.995, coolingRate * 1.002);
+                }
+                else
+                {
+                    stepsSinceImprovement++;
+                    if (stepsSinceImprovement > 2)
+                        coolingRate = Math.Max(0.95, coolingRate * 0.995);
+                }
+
+                temperature *= coolingRate;
+                totalSteps++;
+
+                // Callback to update UI or progress indicators
+                progressCallback?.Invoke(best.Cost);
+            }
+
+            return best;
+        }
 
         private ScheduleState GenerateInitialSchedule(List<Person> people, List<ScheduledTask> tasks)
         {
