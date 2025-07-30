@@ -308,8 +308,9 @@ namespace SchedulingAssistantCSharp
         }
         private void OpenWorkStats_Click(object sender, RoutedEventArgs e)
         {
-            var statsWindow = new WorkStatsWindow(people.ToList()); // use your actual list
-            statsWindow.ShowDialog();
+            WorkStatsWindow statsWindow = new WorkStatsWindow(people.ToList(), allScheduledTasks.ToList()); // use your actual list
+            statsWindow.Show();
+            //statsWindow.ShowDialog();
         }
         private void OptimizeSchedule_Click(object sender, RoutedEventArgs e)
         {

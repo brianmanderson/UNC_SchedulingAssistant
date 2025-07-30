@@ -1,66 +1,96 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media;
+using LiveCharts;
+using LiveCharts.Wpf;
+using SchedulingAssistantCSharp;
 
 namespace SchedulingAssistantCSharp
 {
-    public partial class WorkStatsWindow : Window
+    public partial class WorkStatsWindow : Window, INotifyPropertyChanged
     {
-        private readonly List<Person> people;
+        public SeriesCollection SeriesCollection { get; set; }
+        public string[] LabelsXAxis { get; set; }
+        public Func<double, string> FormatterYAxis { get; set; }
 
-        public WorkStatsWindow(List<Person> people)
+        private DateTime _startDate = DateTime.Today.AddDays(-7);
+        public DateTime StartDate
         {
-            InitializeComponent();
-            this.people = people;
-            StartDatePicker.SelectedDate = DateTime.Today.AddDays(-7);
-            EndDatePicker.SelectedDate = DateTime.Today;
-            RefreshStats();
-        }
-
-        private void UpdateStats_Click(object sender, RoutedEventArgs e)
-        {
-            RefreshStats();
-        }
-
-        private void RefreshStats()
-        {
-            StatsPanel.Children.Clear();
-            if (StartDatePicker.SelectedDate == null || EndDatePicker.SelectedDate == null)
-                return;
-
-            DateTime start = StartDatePicker.SelectedDate.Value.Date;
-            DateTime end = EndDatePicker.SelectedDate.Value.Date;
-
-            foreach (var person in people)
+            get => _startDate;
+            set
             {
-                var groupBox = new GroupBox
-                {
-                    Header = $"{person.Name} - Current Weight: {person.CurrentWeight:F1} / {person.WeightPerDay * 7:F1}",
-                    Margin = new Thickness(5),
-                    Padding = new Thickness(5)
-                };
-
-                var tasks = person.Schedule
-                    .Where(s => s.ScheduledDate >= start && s.ScheduledDate <= end)
-                    .GroupBy(t => t.Task.Name)
-                    .OrderByDescending(g => g.Count());
-
-                var panel = new StackPanel();
-                foreach (var taskGroup in tasks)
-                {
-                    panel.Children.Add(new TextBlock
-                    {
-                        Text = $"{taskGroup.Key}: {taskGroup.Count()}",
-                        Margin = new Thickness(5, 2, 0, 2)
-                    });
-                }
-
-                groupBox.Content = panel;
-                StatsPanel.Children.Add(groupBox);
+                _startDate = value;
+                OnPropertyChanged(nameof(StartDate));
             }
         }
+
+        private DateTime _endDate = DateTime.Today;
+        public DateTime EndDate
+        {
+            get => _endDate;
+            set
+            {
+                _endDate = value;
+                OnPropertyChanged(nameof(EndDate));
+            }
+        }
+
+        private readonly List<Person> _allPeople;
+        private readonly List<ScheduledTask> _allScheduledTasks;
+
+        public WorkStatsWindow(List<Person> people, List<ScheduledTask> tasks)
+        {
+            InitializeComponent();
+            _allPeople = people;
+            _allScheduledTasks = tasks;
+
+            DataContext = this;
+            LoadStats();
+        }
+
+        private void LoadStats()
+        {
+            var labels = new List<string>();
+            var values = new ChartValues<int>();
+
+            foreach (var person in _allPeople)
+            {
+                int taskCount = _allScheduledTasks.Count(t =>
+                    t.AssignedPerson != null &&
+                    t.AssignedPerson.Name == person.Name &&
+                    t.ScheduledDate >= StartDate &&
+                    t.ScheduledDate <= EndDate);
+
+                labels.Add(person.Name);
+                values.Add(taskCount);
+            }
+
+            SeriesCollection = new SeriesCollection
+            {
+                new ColumnSeries
+                {
+                    Title = "Tasks",
+                    Values = values
+                }
+            };
+
+            LabelsXAxis = labels.ToArray();
+            FormatterYAxis = value => value.ToString("N0");
+
+            OnPropertyChanged(nameof(SeriesCollection));
+            OnPropertyChanged(nameof(LabelsXAxis));
+            OnPropertyChanged(nameof(FormatterYAxis));
+        }
+
+        private void Update_Click(object sender, RoutedEventArgs e)
+        {
+            LoadStats();
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        private void OnPropertyChanged(string propertyName)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 }

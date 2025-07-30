@@ -133,6 +133,7 @@ namespace SchedulingAssistantCSharp
         }
         public ScheduleState Run(List<Person> people, List<ScheduledTask> tasks)
         {
+            ResetPeople(people);
             ScheduleState current = GenerateInitialSchedule(people, tasks);
             ScheduleState best = current.Clone();
             double temperature = 10000.0;
@@ -148,7 +149,7 @@ namespace SchedulingAssistantCSharp
                     if (delta < 0 || rng.NextDouble() < Math.Exp(-delta / temperature))
                     {
                         current = neighbor;
-                        if (current.Cost < best.Cost)
+                        if (current.Cost <= best.Cost)
                             best = current.Clone();
                     }
                 }
@@ -279,8 +280,7 @@ namespace SchedulingAssistantCSharp
             }
             return total;
         }
-
-        public void ApplySchedule(ScheduleState state, List<Person> people, List<ScheduledTask> scheduledTasks)
+        private void ResetPeople(List<Person> people)
         {
             foreach (Person person in people)
             {
@@ -290,7 +290,10 @@ namespace SchedulingAssistantCSharp
                     person.UnassignTask(scheduledTask);
                 }
             }
-
+        }
+        public void ApplySchedule(ScheduleState state, List<Person> people, List<ScheduledTask> scheduledTasks)
+        {
+            ResetPeople(people);
             foreach (var kvp in state.Assignment)
             {
                 string personName = kvp.Key.AssignedPersonName;

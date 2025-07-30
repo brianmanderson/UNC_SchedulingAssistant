@@ -1,24 +1,40 @@
 ﻿<Window x:Class="SchedulingAssistantCSharp.WorkStatsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Work Stats" Height="600" Width="800">
+        xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
+        Title="Work Stats" Height="450" Width="800">
+
     <Grid Margin="10">
+        <!-- Define rows: top chart area + bottom controls -->
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <ScrollViewer Grid.Row="1">
-            <StackPanel x:Name="StatsPanel" Orientation="Vertical"/>
-        </ScrollViewer>
+        <!-- LiveCharts Cartesian Chart -->
+        <lvc:CartesianChart Grid.Row="0"
+                            Series="{Binding SeriesCollection}"
+                            LegendLocation="Right">
+            <!-- X Axis: Person Names -->
+            <lvc:CartesianChart.AxisX>
+                <lvc:Axis Title="Person"
+                          Labels="{Binding LabelsXAxis}" />
+            </lvc:CartesianChart.AxisX>
 
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,0,0">
-            <Label Content="Start Date:" Margin="5"/>
-            <DatePicker x:Name="StartDatePicker" Margin="5"/>
-            <Label Content="End Date:" Margin="5"/>
-            <DatePicker x:Name="EndDatePicker" Margin="5"/>
-            <Button Content="Update" Click="UpdateStats_Click" Margin="5"/>
+            <!-- Y Axis: Task Count -->
+            <lvc:CartesianChart.AxisY>
+                <lvc:Axis Title="Tasks"
+                          LabelFormatter="{Binding FormatterYAxis}" />
+            </lvc:CartesianChart.AxisY>
+        </lvc:CartesianChart>
+
+        <!-- Date Controls and Update Button -->
+        <StackPanel Orientation="Horizontal" Grid.Row="1" Margin="0,10,0,0" HorizontalAlignment="Left">
+            <Label Content="Start Date:" VerticalAlignment="Center"/>
+            <DatePicker SelectedDate="{Binding StartDate}" Width="120" Margin="5,0"/>
+            <Label Content="End Date:" VerticalAlignment="Center"/>
+            <DatePicker SelectedDate="{Binding EndDate}" Width="120" Margin="5,0"/>
+            <Button Content="Update" Click="Update_Click" Margin="10,0"/>
         </StackPanel>
     </Grid>
 </Window>
