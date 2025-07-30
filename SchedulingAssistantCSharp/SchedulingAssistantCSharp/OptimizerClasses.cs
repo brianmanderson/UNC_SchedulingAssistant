@@ -128,44 +128,57 @@ namespace SchedulingAssistantCSharp
             Person currentPerson = neighbor.Assignment[taskToReassign];
             List<Person> other_people = people.Where(p => p != currentPerson).ToList();
             Person newPerson = other_people[rng.Next(other_people.Count)];
-            bool canPerform = newPerson.CanPerformTask(taskToReassign, taskToReassign.Task.Weight);
+            bool isAbleToPerform = newPerson.IsAbleToPerformTask(taskToReassign);
+            if (!isAbleToPerform)
+            {
+                return neighbor; // If the new person can't perform the task, return the current state
+            }
+            bool canPerform = newPerson.CanPerformTask(taskToReassign, 999, false);
+            // If they are capable of performing the task, but they cannot take it right now because of other scheduling tasks
+            // We should find out what tasks are conflicting and try to swap them around
             if (canPerform)
             {
-                neighbor.Assignment[taskToReassign] = newPerson;
                 currentPerson.UnassignTask(taskToReassign);
-                newPerson.AssignTask(taskToReassign);
                 neighbor.VirtualWeights[currentPerson.Name] -= taskToReassign.Task.Weight;
+                newPerson.AssignTask(taskToReassign);
+                neighbor.Assignment[taskToReassign] = newPerson;
                 neighbor.VirtualWeights[newPerson.Name] += taskToReassign.Task.Weight;
-                neighbor.Cost = EvaluateSchedule(neighbor.Assignment, neighbor.VirtualWeights, people);
             }
-            else
+            else if (!canPerform)
             {
-                var conflicts = neighbor.Assignment.Where(kvp => kvp.Value == newPerson && kvp.Key.ScheduledDate.Date == taskToReassign.ScheduledDate.Date)
-                    .Select(kvp => kvp.Key).ToList();
-
-                foreach (var conflictTask in conflicts)
+                List<ScheduledTask> conflictingTasks = newPerson.Schedule
+                    .Where(s => s.ScheduledDate.Date == taskToReassign.ScheduledDate.Date)
+                    .ToList();
+                bool canSwap = true;
+                foreach (ScheduledTask conflictingTask in conflictingTasks)
                 {
-                    bool canSwap =
-                        newPerson.CanPerformTask(taskToReassign, 999) == false &&
-                        currentPerson.CanPerformTask(conflictTask, 999);
-
-                    if (canSwap)
+                    if (!currentPerson.IsAbleToPerformTask(conflictingTask))
                     {
-                        // SWAP: assign conflictTask to currentPerson and taskToReassign to person
-                        neighbor.Assignment[conflictTask] = currentPerson;
-                        currentPerson.AssignTask(conflictTask);
-                        neighbor.Assignment[taskToReassign] = newPerson;
-                        newPerson.AssignTask(taskToReassign);
-
-                        // Update virtual weights
-                        neighbor.VirtualWeights[currentPerson.Name] += conflictTask.Task.Weight - taskToReassign.Task.Weight;
-                        neighbor.VirtualWeights[newPerson.Name] += taskToReassign.Task.Weight - conflictTask.Task.Weight;
-
-                        neighbor.Cost = EvaluateSchedule(neighbor.Assignment, neighbor.VirtualWeights, people);
-                        return neighbor;
+                        canSwap = false;
+                        break;
                     }
                 }
+                if (!canSwap)
+                {
+                    return neighbor; // If we can't swap tasks, return the current state
+                }
+                // Perform the swap
+                currentPerson.UnassignTask(taskToReassign);
+                neighbor.VirtualWeights[currentPerson.Name] -= taskToReassign.Task.Weight;
+                foreach (ScheduledTask conflictingTask in conflictingTasks)
+                {
+                    newPerson.UnassignTask(conflictingTask);
+                    neighbor.VirtualWeights[newPerson.Name] -= conflictingTask.Task.Weight;
+
+                    currentPerson.AssignTask(conflictingTask);
+                    neighbor.Assignment[conflictingTask] = currentPerson;
+                    neighbor.VirtualWeights[currentPerson.Name] += conflictingTask.Task.Weight;
+                }
+                newPerson.AssignTask(taskToReassign);
+                neighbor.Assignment[taskToReassign] = newPerson;
+                neighbor.VirtualWeights[newPerson.Name] += taskToReassign.Task.Weight;
             }
+            neighbor.Cost = EvaluateSchedule(neighbor.Assignment, neighbor.VirtualWeights, people);
             return neighbor;
         }
 

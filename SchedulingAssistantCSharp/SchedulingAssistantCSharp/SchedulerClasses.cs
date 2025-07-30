@@ -167,9 +167,20 @@ namespace SchedulingAssistantCSharp
         {
             MaxWeight += WeightPerDay;
         }
-
+        public bool IsAbleToPerformTask(ScheduledTask scheduled_task)
+        {
+            if (!PerformableTasks.Exists(t => t.Name == scheduled_task.Task.Name))
+                return false;
+            return true;
+        }
+        public bool IsAbleToPerformTask(TaskDefinition task)
+        {
+            if (!PerformableTasks.Exists(t => t.Name == task.Name))
+                return false;
+            return true;
+        }
         // Checks whether the person can perform a given scheduled task.
-        public bool CanPerformTask(ScheduledTask scheduled_task, double weight)
+        public bool CanPerformTask(ScheduledTask scheduled_task, double weight, bool check_is_able = true)
         {
             _task = scheduled_task.Task;
             // Check avoidance preferences.
@@ -184,7 +195,7 @@ namespace SchedulingAssistantCSharp
             }
 
             // Verify that the task is in the list of tasks this person can perform.
-            if (!PerformableTasks.Exists(t => t.Name == _task.Name))
+            if (!IsAbleToPerformTask(scheduled_task) && check_is_able)
                 return false;
 
             // Check for scheduling conflicts on the same day.
