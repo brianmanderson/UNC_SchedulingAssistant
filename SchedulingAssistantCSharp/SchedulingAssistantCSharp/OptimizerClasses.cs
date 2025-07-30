@@ -122,7 +122,30 @@ namespace SchedulingAssistantCSharp
         private ScheduleState GenerateNeighbor(ScheduleState current, List<Person> base_people)
         {
             var neighbor = current.Clone();
-            List<Person> people = new List<Person>(base_people);
+            List<Person> people = base_people.Select(p => new Person(
+                p.Name,
+                p.WeightPerDay,
+                p.Preferences.Select(pref => new Preference(pref.Day, pref.TaskOrLocation, pref.Weight)).ToList(),
+                p.AvoidPreferences.Select(pref => new Preference(pref.Day, pref.TaskOrLocation, pref.Weight)).ToList(),
+                p.PerformableTasks // We assume tasks are shared references and immutable
+            )).ToList();
+            foreach (Person person in people)
+            {
+                if (current.VirtualWeights.TryGetValue(person.Name, out double weight))
+                {
+                    person.CurrentWeight = weight;
+                }
+
+                var assignedTasks = current.Assignment
+                    .Where(kvp => kvp.Value.Name == person.Name)
+                    .Select(kvp => kvp.Key)
+                    .ToList();
+
+                foreach (var task in assignedTasks)
+                {
+                    person.Schedule.Add(task);  // Safe because Person.AssignTask is not needed in this simulated environment
+                }
+            }
             List<ScheduledTask> unlockedTasks = neighbor.Assignment.Keys.ToList();
             var taskToReassign = unlockedTasks[rng.Next(unlockedTasks.Count)];
             Person currentPerson = neighbor.Assignment[taskToReassign];
