@@ -314,25 +314,58 @@ namespace SchedulingAssistantCSharp
         }
         private void OptimizeSchedule_Click(object sender, RoutedEventArgs e)
         {
+            ResetPeople();
             SetPersonMaxWeight(); // Recalculate person.MaxWeight based on active days
-
-            var annealer = new SimulatedAnnealingScheduler();
-            if (people.Count == 0)
+            if (true)
             {
-                MessageBox.Show("No people defined. Please create personnel first.");
-                return;
+                var optimizationProgressWindow = new OptimizationProgressWindow();
+                optimizationProgressWindow.Show();
+
+                Task.Run(() =>
+                {
+                    var scheduler = new SimulatedAnnealingScheduler();
+                    var best = scheduler.RunWithAdaptiveCooling(
+                        people.ToList(),
+                        allScheduledTasks.ToList(),
+                        (step, bestCost) =>
+                        {
+                            optimizationProgressWindow.Dispatcher.Invoke(() =>
+                            {
+                                optimizationProgressWindow.AddProgressPoint(step, bestCost);
+                            });
+                        });
+
+                    scheduler.ApplySchedule(best, people.ToList(), allScheduledTasks.ToList());
+
+                    Dispatcher.Invoke(() =>
+                    {
+                        optimizationProgressWindow.Close();
+                        MessageBox.Show($"Optimization Complete! Best Cost: {best.Cost:F2}");
+                    });
+                });
+                listBoxScheduledTasks.Items.Refresh();
             }
-            if (allScheduledTasks.Count == 0)
+            else
             {
-                MessageBox.Show("Nothing scheduled, please add tasks first.");
-                return;
+                var annealer = new SimulatedAnnealingScheduler();
+                if (people.Count == 0)
+                {
+                    MessageBox.Show("No people defined. Please create personnel first.");
+                    return;
+                }
+                if (allScheduledTasks.Count == 0)
+                {
+                    MessageBox.Show("Nothing scheduled, please add tasks first.");
+                    return;
+                }
+                var bestSchedule = annealer.Run(people.ToList(), allScheduledTasks.ToList());
+
+                annealer.ApplySchedule(bestSchedule, people.ToList(), allScheduledTasks.ToList());
+                listBoxScheduledTasks.Items.Refresh();
+
+                MessageBox.Show("Schedule optimization complete via Simulated Annealing.");
             }
-            var bestSchedule = annealer.Run(people.ToList(), allScheduledTasks.ToList());
-
-            annealer.ApplySchedule(bestSchedule, people.ToList(), allScheduledTasks.ToList());
-            listBoxScheduledTasks.Items.Refresh();
-
-            MessageBox.Show("Schedule optimization complete via Simulated Annealing.");
+    
             return;
         }
 
@@ -455,6 +488,22 @@ namespace SchedulingAssistantCSharp
 
             UpdateScheduledTasksForSelectedDate();
             MessageBox.Show("Deleted all unlocked tasks for the selected date(s).");
+        }
+        private void ResetPeople()
+        {
+            foreach (Person person in people.ToList())
+            {
+                List<ScheduledTask> tasksToRemove = person.Schedule.Where(t => !t.Locked).ToList();
+                foreach (ScheduledTask scheduledTask in tasksToRemove)
+                {
+                    person.UnassignTask(scheduledTask);
+                }
+            }
+        }
+        private void Unassign_Click(object sender, RoutedEventArgs e)
+        {
+            ResetPeople();
+            UpdateScheduledTasksForSelectedDate();
         }
     }
 }

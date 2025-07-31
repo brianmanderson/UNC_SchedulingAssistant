@@ -13,6 +13,8 @@ namespace SchedulingAssistantCSharp
     {
         public SeriesCollection SeriesCollection { get; set; }
         public string[] LabelsXAxis { get; set; }
+        public double YAxisMax { get; set; }
+        public double YAxisMin { get; set; } = 0;
         public Func<double, string> FormatterYAxis { get; set; }
 
         private DateTime _startDate = DateTime.Today.AddDays(-90);
@@ -52,18 +54,16 @@ namespace SchedulingAssistantCSharp
 
         private void LoadStats()
         {
-            // Identify unique Task Names
             var taskNames = _allScheduledTasks
                 .Select(t => t.Task.Name)
                 .Distinct()
                 .OrderBy(name => name)
                 .ToList();
 
-            // Set Labels as person names
             LabelsXAxis = _allPeople.Select(p => p.Name).ToArray();
-
-            // Create SeriesCollection with a ColumnSeries per task type
             SeriesCollection = new SeriesCollection();
+
+            int globalMax = 0;
 
             foreach (var taskName in taskNames)
             {
@@ -79,6 +79,8 @@ namespace SchedulingAssistantCSharp
                         t.ScheduledDate.Date <= EndDate.Date);
 
                     taskCountsPerPerson.Add(count);
+                    if (count > globalMax)
+                        globalMax = count;
                 }
 
                 SeriesCollection.Add(new ColumnSeries
@@ -88,11 +90,15 @@ namespace SchedulingAssistantCSharp
                 });
             }
 
+            YAxisMax = globalMax + 1;
+
             FormatterYAxis = value => value.ToString("N0");
 
             OnPropertyChanged(nameof(SeriesCollection));
             OnPropertyChanged(nameof(LabelsXAxis));
             OnPropertyChanged(nameof(FormatterYAxis));
+            OnPropertyChanged(nameof(YAxisMax));
+            OnPropertyChanged(nameof(YAxisMin));
         }
 
         private void Update_Click(object sender, RoutedEventArgs e)

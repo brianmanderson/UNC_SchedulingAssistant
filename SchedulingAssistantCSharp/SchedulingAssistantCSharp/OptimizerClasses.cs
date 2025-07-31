@@ -158,28 +158,36 @@ namespace SchedulingAssistantCSharp
             }
             return best;
         }
-
-        public ScheduleState RunWithAdaptiveCooling(List<Person> people, List<ScheduledTask> tasks, Action<double> progressCallback = null)
+        public ScheduleState RunWithAdaptiveCooling(
+            List<Person> people,
+            List<ScheduledTask> tasks,
+            Action<double, double> progressCallback = null)
         {
             ScheduleState current = GenerateInitialSchedule(people, tasks);
             ScheduleState best = current.Clone();
 
-            double temperature = 100.0;
-            const double minTemp = 0.1;
+            double temperature = 5000.0;
+            int stop_without_improvement = 300;
+            const double minTemp = 10;
             double coolingRate = 0.98;
 
             int iterationsPerTemp = 500;
-            int parallelNeighbors = 10;
-
-            int stepsSinceImprovement = 0;
-            int totalSteps = 0;
-
+            int parallelNeighbors = 20;
+            double step = 0;
+            progressCallback?.Invoke(step, best.Cost);
+            int steps_since_improvement = 0;
             while (temperature > minTemp)
             {
                 bool improvedThisTemp = false;
-
                 for (int i = 0; i < iterationsPerTemp; i++)
                 {
+                    steps_since_improvement++;
+                    step++;
+                    if (steps_since_improvement > stop_without_improvement)
+                    {
+                        temperature = 0;
+                        break;
+                    }
                     var neighbors = new ConcurrentBag<ScheduleState>();
 
                     Parallel.For(0, parallelNeighbors, _ =>
@@ -190,7 +198,7 @@ namespace SchedulingAssistantCSharp
                     var bestNeighbor = neighbors.OrderBy(n => n.Cost).First();
                     double delta = bestNeighbor.Cost - current.Cost;
 
-                    if (delta < 0 || rng.NextDouble() < Math.Exp(-delta / temperature))
+                    if (delta <= 0 || rng.NextDouble() < Math.Exp(-delta / temperature))
                     {
                         current = bestNeighbor;
 
@@ -198,28 +206,20 @@ namespace SchedulingAssistantCSharp
                         {
                             best = current.Clone();
                             improvedThisTemp = true;
+                            steps_since_improvement = 0;
                         }
                     }
+                    progressCallback?.Invoke(step, best.Cost);
                 }
 
-                // Adaptive cooling logic
-                if (improvedThisTemp)
-                {
-                    stepsSinceImprovement = 0;
-                    coolingRate = Math.Min(0.995, coolingRate * 1.002);
-                }
-                else
-                {
-                    stepsSinceImprovement++;
-                    if (stepsSinceImprovement > 2)
-                        coolingRate = Math.Max(0.95, coolingRate * 0.995);
-                }
+                // Adaptive cooling
+                coolingRate = improvedThisTemp
+                    ? Math.Min(0.995, coolingRate * 1.002)
+                    : Math.Max(0.95, coolingRate * 0.995);
 
                 temperature *= coolingRate;
-                totalSteps++;
 
-                // Callback to update UI or progress indicators
-                progressCallback?.Invoke(best.Cost);
+                // Update UI via callback
             }
 
             return best;
@@ -329,8 +329,17 @@ namespace SchedulingAssistantCSharp
             foreach (var group in personAssignments)
             {
                 Person person = group.Key;
-                double weightError = Math.Abs(virtualWeights[person.Name] - person.MaxWeight);
-
+                double weightError;
+                double weightDifference = virtualWeights[person.Name] - person.MaxWeight;
+                if (weightDifference > 0)
+                {
+                    // Add a weighting function to people who are over weighted vs underweighted
+                    weightError = weightDifference*1.2;
+                }
+                else
+                {
+                    weightError = Math.Abs(weightDifference);
+                }
                 double shiftPenalty = 0.0;
                 double preferencePenalty = 0.0;
 
@@ -353,6 +362,25 @@ namespace SchedulingAssistantCSharp
                 }
 
                 total += weightError + shiftPenalty + preferencePenalty;
+            }
+
+
+            var tasksByType = assignment.Keys.GroupBy(t => t.Task.Name);
+
+            foreach (var taskGroup in tasksByType)
+            {
+                var distributionCounts = taskGroup
+                    .GroupBy(t => assignment[t])
+                    .Select(g => g.Count())
+                    .ToList();
+
+                double mean = distributionCounts.Average();
+                double variance = distributionCounts
+                    .Select(count => Math.Pow(count - mean, 2))
+                    .Average();
+
+                double unevennessPenalty = variance * 1.0; // small weighting factor
+                total += unevennessPenalty;
             }
             return total;
         }

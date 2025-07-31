@@ -24,7 +24,9 @@
             <!-- Y Axis: Task Count -->
             <lvc:CartesianChart.AxisY>
                 <lvc:Axis Title="Tasks"
-                          LabelFormatter="{Binding FormatterYAxis}" />
+              LabelFormatter="{Binding FormatterYAxis}"
+              MinValue="{Binding YAxisMin}"
+              MaxValue="{Binding YAxisMax}" />
             </lvc:CartesianChart.AxisY>
         </lvc:CartesianChart>
 
