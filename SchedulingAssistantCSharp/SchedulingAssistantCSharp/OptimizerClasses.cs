@@ -168,7 +168,7 @@ namespace SchedulingAssistantCSharp
             ScheduleState best = current.Clone();
 
             double temperature = 5000.0;
-            int stop_without_improvement = 250;
+            int stop_without_improvement = 350;
             const double minTemp = 10;
             double coolingRate = 0.98;
 
@@ -210,7 +210,7 @@ namespace SchedulingAssistantCSharp
                             steps_since_improvement = 0;
                         }
                     }
-                    progressCallback?.Invoke(step, best.Cost);
+                    progressCallback?.Invoke(step, current.Cost);
                 }
 
                 // Adaptive cooling
@@ -231,14 +231,18 @@ namespace SchedulingAssistantCSharp
             var assignment = new Dictionary<ScheduledTask, Person>();
             var virtualWeights = people.ToDictionary(p => p.Name, p => 0.0);
             List<Person> temp_people = new List<Person>(people);
+            tasks = tasks.OrderBy(t => people.Count(p => p.IsAbleToPerformTask(t))).ToList();
             foreach (var task in tasks)
             {
                 if (task.AssignedPerson is null)
                 {
                     List<Person> eligible = optimizer.GetEligiblePeople(temp_people, task, 9.0);
-                    if (eligible.Count == 0) continue;
-                    //Person best = eligible.OrderBy(p => optimizer.CalculatePersonAssignmentScore(p, task)).First();
-                    Person best = eligible[rng.Next(eligible.Count)];
+                    if (eligible.Count == 0)
+                    {
+                        eligible = people.Where(p => p.IsAbleToPerformTask(task)).ToList();
+                    }
+                    Person best = eligible.OrderBy(p => optimizer.CalculatePersonAssignmentScore(p, task)).First();
+                    //Person best = eligible[rng.Next(eligible.Count)];
                     best.AssignTask(task);
                     assignment[task] = best;
                     virtualWeights[best.Name] += task.Task.Weight;
@@ -325,7 +329,6 @@ namespace SchedulingAssistantCSharp
             foreach (var group in personAssignments)
             {
                 Person person = group.Key;
-
                 // Original Weight Error
                 double weightDifference = virtualWeights[person.Name] - person.MaxWeight;
                 double weightError = weightDifference > 0
@@ -434,6 +437,40 @@ namespace SchedulingAssistantCSharp
                 }
             }
 
+
+            var tasksByBiWeek = assignment.Keys.GroupBy(t => 
+            {
+                int week = CultureInfo.CurrentCulture.Calendar.GetWeekOfYear(
+                    t.ScheduledDate, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
+                return week / 2;
+            });
+            foreach (var BiweeklyTasks in tasksByBiWeek)
+            {
+                var tasksByType = BiweeklyTasks.GroupBy(t => t.Task.Name);
+
+                foreach (var taskGroup in tasksByType)
+                {
+                    // Identify eligible people for this task type
+                    var eligiblePeople = people
+                        .Where(p => p.PerformableTasks.Any(pt => pt.Name == taskGroup.Key))
+                        .ToList();
+
+                    var countsPerPerson = eligiblePeople
+                        .Select(person => taskGroup.Count(t => assignment[t] == person))
+                        .ToList();
+
+                    if (countsPerPerson.Count == 0)
+                        continue; // Avoid division by zero
+
+                    double mean = countsPerPerson.Average();
+                    double variance = countsPerPerson
+                        .Select(count => Math.Pow(count - mean, 2))
+                        .Average();
+
+                    double unevennessPenalty = variance * 2.0; // Adjust factor as needed
+                    totalDistributionPenalty += unevennessPenalty;
+                }
+            }
             total += totalDistributionPenalty;
             return total;
         }

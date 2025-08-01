@@ -60,7 +60,6 @@ namespace SchedulingAssistantCSharp
                 currentPerson = selectedPerson;
                 textBoxPersonName.Text = currentPerson.Name;
                 textBoxWeightPerDay.Text = currentPerson.WeightPerDay.ToString();
-                textBoxMaxWeight.Text = currentPerson.MaxWeight.ToString();
                 BuildSelectablePersonTasks();
                 isPopulatingFields = false; // Re-enable TextChanged
             }
@@ -144,10 +143,6 @@ namespace SchedulingAssistantCSharp
             if (currentPerson != null && double.TryParse(textBoxWeightPerDay.Text, out double weight))
             {
                 currentPerson.WeightPerDay = weight;
-            }
-            if (currentPerson != null && double.TryParse(textBoxMaxWeight.Text, out double maxweight))
-            {
-                currentPerson.MaxWeight = maxweight;
             }
             if (currentPerson != null && !string.IsNullOrEmpty(textBoxPersonName.Text))
             {

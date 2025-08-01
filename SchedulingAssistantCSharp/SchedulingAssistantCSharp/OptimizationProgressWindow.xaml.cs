@@ -50,12 +50,12 @@ namespace SchedulingAssistantCSharp
             progressSeries.Values.Add(bestScore);
 
             // Update X-axis range to clearly show decreasing temperature
-            ProgressChart.AxisX[0].MinValue = 0;
+            ProgressChart.AxisX[0].MinValue = Math.Max(step - 300, 0);
             ProgressChart.AxisX[0].MaxValue = step + 10;
 
             // Update Y-axis to fit best scores clearly
-            ProgressChart.AxisY[0].MinValue = bestScore * 0.75;
-            ProgressChart.AxisY[0].MaxValue = bestScore * 1.25;
+            ProgressChart.AxisY[0].MinValue = bestScore * 0.9;
+            ProgressChart.AxisY[0].MaxValue = bestScore * 1.1;
         }
     }
 }

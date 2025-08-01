@@ -30,10 +30,6 @@
                 <Label Content="Weight Per Day:" Width="120"/>
                 <TextBox x:Name="textBoxWeightPerDay" Width="150" TextChanged="textBoxChanged"/>
             </StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-                <Label Content="Weight Per Week:" Width="120"/>
-                <TextBox x:Name="textBoxMaxWeight" Width="150" TextChanged="textBoxChanged"/>
-            </StackPanel>
             <!-- Expanded Performable Tasks Section -->
             <TextBlock Text="Performable Tasks:" FontWeight="Bold" Margin="0,10,0,5"/>
             <ItemsControl x:Name="itemsControlPerformableTasks">
