@@ -54,8 +54,8 @@ namespace SchedulingAssistantCSharp
             ProgressChart.AxisX[0].MaxValue = step + 10;
 
             // Update Y-axis to fit best scores clearly
-            ProgressChart.AxisY[0].MinValue = bestScore * 0.5;
-            ProgressChart.AxisY[0].MaxValue = bestScore * 2.0;
+            ProgressChart.AxisY[0].MinValue = bestScore * 0.75;
+            ProgressChart.AxisY[0].MaxValue = bestScore * 1.25;
         }
     }
 }

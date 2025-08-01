@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Drawing.Printing;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -167,7 +168,7 @@ namespace SchedulingAssistantCSharp
             ScheduleState best = current.Clone();
 
             double temperature = 5000.0;
-            int stop_without_improvement = 300;
+            int stop_without_improvement = 250;
             const double minTemp = 10;
             double coolingRate = 0.98;
 
@@ -230,7 +231,7 @@ namespace SchedulingAssistantCSharp
             var assignment = new Dictionary<ScheduledTask, Person>();
             var virtualWeights = people.ToDictionary(p => p.Name, p => 0.0);
             List<Person> temp_people = new List<Person>(people);
-            foreach (var task in tasks.Where(t => !t.Locked))
+            foreach (var task in tasks)
             {
                 if (task.AssignedPerson is null)
                 {
@@ -262,16 +263,12 @@ namespace SchedulingAssistantCSharp
         {
             var neighbor = current.Clone();
 
-            List<ScheduledTask> unlockedTasks = neighbor.Assignment.Keys.ToList();
+            List<ScheduledTask> unlockedTasks = neighbor.Assignment.Keys.Where(t => !t.Locked).ToList();
             ScheduledTask taskToReassign = unlockedTasks[rng.Next(unlockedTasks.Count)];
             Person currentPerson = neighbor.Assignment[taskToReassign];
-            List<Person> other_people = neighbor.Assignment.Values.Distinct().Where(p => p != currentPerson).ToList();
+            List<Person> other_people = neighbor.Assignment.Values.Distinct().Where(p => p != currentPerson && p.IsAbleToPerformTask(taskToReassign)).ToList();
             Person newPerson = other_people[rng.Next(other_people.Count)];
-            bool isAbleToPerform = newPerson.IsAbleToPerformTask(taskToReassign);
-            if (!isAbleToPerform)
-            {
-                return neighbor; // If the new person can't perform the task, return the current state
-            }
+
             bool canPerform = newPerson.CanPerformTask(taskToReassign, 999, false);
             // If they are capable of performing the task, but they cannot take it right now because of other scheduling tasks
             // We should find out what tasks are conflicting and try to swap them around
@@ -286,7 +283,7 @@ namespace SchedulingAssistantCSharp
             else if (!canPerform)
             {
                 List<ScheduledTask> conflictingTasks = newPerson.Schedule
-                    .Where(s => s.ScheduledDate.Date == taskToReassign.ScheduledDate.Date)
+                    .Where(s => s.ScheduledDate.Date == taskToReassign.ScheduledDate.Date && !s.Locked)
                     .ToList();
                 bool canSwap = true;
                 foreach (ScheduledTask conflictingTask in conflictingTasks)
@@ -320,7 +317,6 @@ namespace SchedulingAssistantCSharp
             neighbor.Cost = EvaluateSchedule(neighbor.Assignment, neighbor.VirtualWeights);
             return neighbor;
         }
-
         private double EvaluateSchedule(Dictionary<ScheduledTask, Person> assignment, Dictionary<string, double> virtualWeights)
         {
             var personAssignments = assignment.GroupBy(kvp => kvp.Value);
@@ -329,29 +325,18 @@ namespace SchedulingAssistantCSharp
             foreach (var group in personAssignments)
             {
                 Person person = group.Key;
-                double weightError;
+
+                // Original Weight Error
                 double weightDifference = virtualWeights[person.Name] - person.MaxWeight;
-                if (weightDifference > 0)
-                {
-                    // Add a weighting function to people who are over weighted vs underweighted
-                    weightError = weightDifference*1.2;
-                }
-                else
-                {
-                    weightError = Math.Abs(weightDifference);
-                }
+                double weightError = weightDifference > 0
+                    ? weightDifference * 1.2
+                    : Math.Abs(weightDifference);
+
                 double shiftPenalty = 0.0;
                 double preferencePenalty = 0.0;
 
-                foreach (ScheduledTask scheduledTask in person.Schedule.OrderBy(t => t.ScheduledDate).ThenBy(t => t.Task.EndTime).ToList())
+                foreach (ScheduledTask scheduledTask in person.Schedule.OrderBy(t => t.ScheduledDate).ThenBy(t => t.Task.EndTime))
                 {
-
-                    // Shift penalty
-                    TimeSpan prevEnd = optimizer.GetPreviousDayEndTime(person, scheduledTask.ScheduledDate);
-                    TimeSpan thisStart = scheduledTask.Task.StartTime;
-                    if (prevEnd != TimeSpan.Zero && 24 - (prevEnd - thisStart).TotalHours < 12)
-                        shiftPenalty += 8;
-
                     // Preference penalty
                     var matchingPref = person.AvoidPreferences
                         .Where(pref => pref.Day.Date == scheduledTask.ScheduledDate.Date)
@@ -361,29 +346,98 @@ namespace SchedulingAssistantCSharp
                     preferencePenalty += matchingPref.Any() ? matchingPref.Max() : 0.0;
                 }
 
-                total += weightError + shiftPenalty + preferencePenalty;
-            }
-
-
-            var tasksByType = assignment.Keys.GroupBy(t => t.Task.Name);
-
-            foreach (var taskGroup in tasksByType)
-            {
-                var distributionCounts = taskGroup
-                    .GroupBy(t => assignment[t])
-                    .Select(g => g.Count())
+                var orderedTasks = person.Schedule
+                    .OrderBy(t => t.ScheduledDate)
+                    .ThenBy(t => t.Task.EndTime)
                     .ToList();
 
-                double mean = distributionCounts.Average();
-                double variance = distributionCounts
-                    .Select(count => Math.Pow(count - mean, 2))
-                    .Average();
+                for (int i = 0; i < orderedTasks.Count; i++)
+                {
+                    var scheduledTask = orderedTasks[i];
 
-                double unevennessPenalty = variance * 1.0; // small weighting factor
-                total += unevennessPenalty;
+                    if (i == 0)
+                        continue; // No previous task to compare
+
+                    var prevTask = orderedTasks[i - 1];
+
+                    // Check if the previous task is exactly one day before the current task
+                    if ((scheduledTask.ScheduledDate.Date - prevTask.ScheduledDate.Date).TotalDays == 1)
+                    {
+                        TimeSpan prevEnd = prevTask.Task.EndTime;
+                        TimeSpan thisStart = scheduledTask.Task.StartTime;
+
+                        // Calculate the gap between previous day's end and current day's start
+                        double gapHours = (24 - prevEnd.TotalHours) + thisStart.TotalHours;
+                        if (gapHours < 12)
+                            shiftPenalty += 8;
+                    }
+                }
+
+                // Weekly Distribution Penalty (new)
+                double weeklyDistributionPenalty = 0.0;
+
+                var weeklyGroups = person.Schedule
+                    .GroupBy(t => CultureInfo.CurrentCulture.Calendar.GetWeekOfYear(
+                        t.ScheduledDate, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday));
+
+                foreach (var weekGroup in weeklyGroups)
+                {
+                    double weeklyWeight = weekGroup.Sum(t => t.Task.Weight);
+                    double idealWeeklyWeight = person.WeightPerDay * 5;
+                    double weeklyDifference = weeklyWeight - idealWeeklyWeight;
+                    if (weeklyWeight > idealWeeklyWeight)
+                    {
+                        weeklyDistributionPenalty += weeklyDifference * 1.2;
+                    }
+                    else
+                    {
+                        weeklyDistributionPenalty += Math.Abs(weeklyDifference);
+                    }
+                }
+
+                // Add the weekly distribution penalty with a weighting factor (adjustable)
+                total += weightError + shiftPenalty + preferencePenalty + (weeklyDistributionPenalty * 0.5);
             }
+
+            // Existing uneven task distribution penalty
+            var tasksByWeek = assignment.Keys
+                .GroupBy(t => CultureInfo.CurrentCulture.Calendar.GetWeekOfYear(
+                    t.ScheduledDate, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday));
+
+            double totalDistributionPenalty = 0.0;
+            List<Person> people = assignment.Values.Distinct().ToList();
+            foreach (var weeklyTasks in tasksByWeek)
+            {
+                var tasksByType = weeklyTasks.GroupBy(t => t.Task.Name);
+
+                foreach (var taskGroup in tasksByType)
+                {
+                    // Identify eligible people for this task type
+                    var eligiblePeople = people
+                        .Where(p => p.PerformableTasks.Any(pt => pt.Name == taskGroup.Key))
+                        .ToList();
+
+                    var countsPerPerson = eligiblePeople
+                        .Select(person => taskGroup.Count(t => assignment[t] == person))
+                        .ToList();
+
+                    if (countsPerPerson.Count == 0)
+                        continue; // Avoid division by zero
+
+                    double mean = countsPerPerson.Average();
+                    double variance = countsPerPerson
+                        .Select(count => Math.Pow(count - mean, 2))
+                        .Average();
+
+                    double unevennessPenalty = variance * 1.0; // Adjust factor as needed
+                    totalDistributionPenalty += unevennessPenalty;
+                }
+            }
+
+            total += totalDistributionPenalty;
             return total;
         }
+
         private void ResetPeople(List<Person> people)
         {
             foreach (Person person in people)
